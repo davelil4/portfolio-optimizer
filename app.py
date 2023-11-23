@@ -2,7 +2,8 @@ from dash import Dash, html, dcc, callback, Output, Input
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
-import data_grab as log
+import data_grab as dg
+import layout as lay
 
 # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
 
@@ -22,17 +23,20 @@ app.layout = dbc.Container(
                 value='MSFT'
             ))),
         dbc.Row(
-            dbc.Col(
-                dcc.Graph(id='graph-content')
-            )),
+            [
+                dbc.Col(
+                    dcc.Graph(id='graph-content')
+                ),
+                dbc.Col(dcc.Graph(id='port-graph', figure=lay.build_port_figure(["AAPL", "AEP", "BAX", "ED", "F", "GE", "GOOG", "MCD","MSFT"])))
+            ]),
     ])
 
 @callback(
     Output('graph-content', 'figure'),
     Input('ticker-asset', 'value')
 )
-def update_graph(value):
-    dff = log.getHistory(value)
+def update_close_ticker(value):
+    dff = dg.getHistory(value)
     return px.line(dff, y='Close', title=value + " Close Stock Price")
 
 if __name__ == '__main__':
