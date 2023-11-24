@@ -21,7 +21,7 @@ def getEffPort(symbols):
     
     m = len(symbols)
     
-    rets = dg.getLogReturnsFromList(symbols)
+    # rets = dg.getLogReturnsFromList(symbols)
     AmatLP1 = np.column_stack((np.diag(np.diag(np.full((m, m),1))), np.full((m, m),0)))
     AmatLP2 = np.column_stack((np.full((m, m),0), np.diag(np.diag(np.full((m, m),1)))))
     # AmatLP3 = np.column_stack((np.full((1, m), 1), np.full((1, m), -1)))
@@ -33,7 +33,7 @@ def getEffPort(symbols):
     
     res = pyreadr.read_r('returns.Jul25.2023.RData')
     # print(res['returns']["AAPL"])
-    # rets = pd.DataFrame(res["returns"])[syms]
+    rets = pd.DataFrame(res["returns"])[syms]
     
     means = rets.mean()
     # print(means.to_numpy())
@@ -89,7 +89,6 @@ def getEffPort(symbols):
         bvec = np.row_stack((np.ones(1), np.full((1, 1), muP[i]), 
                             #  np.full((m, 1), (lb)), np.full((m, 1), -ub)
                              ))
-        # print(Amat.shape, bvec.shape, Gmat.shape, hvec.shape)
         res = solve_qp(P=Dmat, q=(-1 * dvec), G=(-1 * Gmat.transpose()), h=(-1 * hvec), 
                        A=Amat.transpose(), b=bvec,
                     #    lb=np.full((1, m), (lb)), ub=np.full((1, m), ub), 
@@ -121,7 +120,6 @@ def getSharpesPort(symbols, init_port=None):
 
 def getMinVarPort(symbols, init_port=None):
     port = init_port if init_port else getEffPort(symbols)
-    muP = port["muP"]
     sdP = port["sdP"]
     weights = port["weights"]
     ind = np.argmin(sdP)
@@ -129,5 +127,3 @@ def getMinVarPort(symbols, init_port=None):
         "weights": weights[ind, :],
         "ind": ind
     }
-
-getEffPort(syms)

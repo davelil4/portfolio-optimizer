@@ -27,30 +27,32 @@ def build_port_figure(symbols):
     fig = px.line(df, x = "sdP", y = "muP",
                 #   range_x=[0., 0.0325], range_y=[0.00005,0.0015]
                   )
-    fig.add_traces(
-        go.Scatter(
-            x = [sdP[sharpesPort["ind"]]], y = [muP[sharpesPort["ind"]]], mode="markers", name="Sharpes Portfolio", hoverinfo="skip"
-        )
-    )
-    
-    fig.add_traces(
-        go.Scatter(
-            x = [sdP[minVarPort["ind"]]], y = [muP[minVarPort["ind"]]], mode="markers", name="Minimum Variance Portfolio", hoverinfo="skip"
-        )
-    )
     
     inds = np.argwhere(muP >= muP[minVarPort["ind"]]).flatten()
     # print(inds)
     
+    
     fig.add_traces(
         go.Scatter(
-            x = sdP[inds], y = muP[inds], line_shape='spline', name="Efficient Frontier"
+            x = [0, .03], y = [muf, muf + sharpesPort["sharpe"].max()*.03], mode='lines', line=dict(color='red'), name="Optimal Portfolios"
         )
     )
     
     fig.add_traces(
         go.Scatter(
-            x = [0, .03], y = [muf, muf + sharpesPort["sharpe"].max()*.03], mode='lines', line=dict(color='red'), name="Optimal Portfolios"
+            x = sdP[inds], y = muP[inds], line_shape='spline', name="Efficient Frontier", line=dict(color='purple'), hovertemplate='sdP=%{x}<br>muP=%{y}',
+        )
+    )
+    
+    fig.add_traces(
+        go.Scatter(
+            x = [sdP[sharpesPort["ind"]]], y = [muP[sharpesPort["ind"]]], mode="markers", name="Sharpes Portfolio", hovertemplate='sdP=%{x}<br>muP=%{y}'
+        )
+    )
+    
+    fig.add_traces(
+        go.Scatter(
+            x = [sdP[minVarPort["ind"]]], y = [muP[minVarPort["ind"]]], mode="markers", name="Minimum Variance Portfolio", hovertemplate='sdP=%{x}<br>muP=%{y}'
         )
     )
     
@@ -61,13 +63,9 @@ def build_portfolio_graph_layout():
     
 
 
-# def build_table():
-#     dbc.Card(
-#         [
-#             html.Div(
-#                 [
-                    
-#                 ]
-#             )
-#         ]
-#     )
+def build_table():
+    html.Div(
+        [
+            
+        ]
+    )

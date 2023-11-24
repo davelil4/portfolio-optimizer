@@ -14,7 +14,7 @@ app.layout = dbc.Container(
     [
         dbc.Row(
             dbc.Col(
-                html.H1(children='Minimum Variance Portfolio Optimizer', style={'textAlign':'center'}))),
+                html.H1(children='Portfolio Optimizer', style={'textAlign':'center'}))),
         # dcc.Dropdown(df.country.unique(), 'Canada', id='dropdown-selection'),
         dbc.Row(
             dbc.Col(dbc.Input(
