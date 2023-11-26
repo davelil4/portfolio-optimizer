@@ -1,6 +1,10 @@
 import yfinance as yf
 import pandas as pd
 import math
+from dotenv import load_dotenv
+from stocksymbol import StockSymbol
+import os
+load_dotenv()
 
 def getHistory(symbol):
     stock = yf.Ticker(symbol)
@@ -23,5 +27,5 @@ def getLogReturnsFromList(symbols: list[str]) -> pd.DataFrame:
         df[symbol] = getLogReturnsFromSymbol(symbol)
     return df
 
-
-    
+ss = StockSymbol(os.environ["STOCK_SYMBOL_API_KEY"])
+stock_symbols = list(map(lambda x: x['symbol'], ss.get_symbol_list(market="US")))

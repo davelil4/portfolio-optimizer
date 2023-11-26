@@ -6,12 +6,10 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-
 def build_portfolio():
     pass
 
-def build_port_figure(symbols):
-    port = lp.getEffPort(symbols)
+def build_port_figure(symbols, port):
     sdP = port["sdP"]
     muP = port["muP"]
     muf = port["muf"]
@@ -33,39 +31,40 @@ def build_port_figure(symbols):
     
     
     fig.add_traces(
-        go.Scatter(
-            x = [0, .03], y = [muf, muf + sharpesPort["sharpe"].max()*.03], mode='lines', line=dict(color='red'), name="Optimal Portfolios"
-        )
-    )
-    
-    fig.add_traces(
-        go.Scatter(
-            x = sdP[inds], y = muP[inds], line_shape='spline', name="Efficient Frontier", line=dict(color='purple'), hovertemplate='sdP=%{x}<br>muP=%{y}',
-        )
-    )
-    
-    fig.add_traces(
-        go.Scatter(
-            x = [sdP[sharpesPort["ind"]]], y = [muP[sharpesPort["ind"]]], mode="markers", name="Sharpes Portfolio", hovertemplate='sdP=%{x}<br>muP=%{y}'
-        )
-    )
-    
-    fig.add_traces(
-        go.Scatter(
-            x = [sdP[minVarPort["ind"]]], y = [muP[minVarPort["ind"]]], mode="markers", name="Minimum Variance Portfolio", hovertemplate='sdP=%{x}<br>muP=%{y}'
-        )
+        [
+            go.Scatter(
+                x = [0, .03], y = [muf, muf + sharpesPort["sharpe"].max()*.03], mode='lines', line=dict(color='red'), name="Optimal Portfolios"
+            ),
+            go.Scatter(
+                x = sdP[inds], y = muP[inds], line_shape='spline', name="Efficient Frontier", line=dict(color='purple'), hovertemplate='sdP=%{x}<br>muP=%{y}',
+            ),
+            go.Scatter(
+                x = [sdP[sharpesPort["ind"]]], y = [muP[sharpesPort["ind"]]], mode="markers", name="Sharpes Portfolio", hovertemplate='sdP=%{x}<br>muP=%{y}'
+            ),
+            go.Scatter(
+                x = [sdP[minVarPort["ind"]]], y = [muP[minVarPort["ind"]]], mode="markers", name="Minimum Variance Portfolio", hovertemplate='sdP=%{x}<br>muP=%{y}'
+            )
+        ]
     )
     
     return fig
-
-def build_portfolio_graph_layout():
-    pass
     
 
 
-def build_table():
-    html.Div(
+def build_port_table(symbols, port):
+    
+    sharpesPort = lp.getSharpesPort(symbols, port)
+    minVarPort = lp.getMinVarPort(symbols, port)
+    
+    
+    df = pd.DataFrame({
+        "Stock Symbol": symbols,
+        "Sharpe Weight": sharpesPort["weights"],
+        "Minimum Variance Weight": minVarPort["weights"]
+    })
+    
+    return html.Div(
         [
-            
+            dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True)
         ]
     )
