@@ -34,13 +34,26 @@ app.layout = dbc.Container(
                 dbc.Col(
                     dcc.Graph(id='graph-content', figure=px.line(dg.getHistory('MSFT'), y='Close', title="MSFT Close Stock Price"))
                 ),
-                dbc.Col(dcc.Graph(id='port-graph', figure=lay.build_port_figure(test_syms, port)))
+                dbc.Col(
+                    dcc.Graph(id='port-graph', figure=lay.build_port_figure(test_syms, port))
+                )
             ]
         ),
         dbc.Row(
             [
                 dbc.Col(
-                    lay.build_port_table(test_syms, port)
+                    dbc.Stack([
+                        dbc.Label("Budget:"),
+                        dbc.Input(id='budget', type="number", persistence=True, persistence_type='local')
+                    ], direction="horizontal", gap=3),
+                    width=2
+                )
+            ]
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    id='port-table',
                 )
             ]
         )
@@ -56,11 +69,27 @@ def update_close_ticker(value):
     dff = dg.getHistory(value)
     return px.line(dff, y='Close', title=value + " Close Stock Price")
 
-# @callback(
-#     Output('local', 'data'),
-#     Input('ticker-asset', 'value')
-# )
-# def update_assets
+@callback(
+    Output('local', 'data'),
+    Input('budget', 'value')
+)
+def update_budget(value):
+    if value is None:
+        raise PreventUpdate
+    
+    return {'budget': value}
+
+@callback(
+    Output('port-table', 'children'),
+    Input('local', 'data'),
+)
+def update_port_table(data):
+    if data is None:
+        raise PreventUpdate
+    
+    budget = data['budget']
+    return lay.build_port_table(test_syms, port, budget)
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

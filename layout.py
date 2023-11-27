@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+import data_grab as dg
 
 def build_portfolio():
     pass
@@ -51,16 +52,19 @@ def build_port_figure(symbols, port):
     
 
 
-def build_port_table(symbols, port):
+def build_port_table(symbols, port, budg):
     
     sharpesPort = lp.getSharpesPort(symbols, port)
     minVarPort = lp.getMinVarPort(symbols, port)
     
+    costs = np.array(list(map(lambda x: dg.getMarketPrice(x), symbols)))
     
     df = pd.DataFrame({
         "Stock Symbol": symbols,
         "Sharpe Weight": sharpesPort["weights"],
-        "Minimum Variance Weight": minVarPort["weights"]
+        "Minimum Variance Weight": minVarPort["weights"],
+        "Sharpe Weight Allocation": ((budg * sharpesPort["weights"]) / costs).astype(int),
+        "Min Var Allocation": ((budg * minVarPort["weights"]) / costs).astype(int)
     })
     
     return html.Div(

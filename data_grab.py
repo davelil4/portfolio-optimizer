@@ -11,6 +11,9 @@ def getHistory(symbol):
     hist = stock.history(period="1mo")
     return hist
 
+def getMarketPrice(symbol):
+    ticker = yf.Ticker(symbol).info
+    return ticker['regularMarketPreviousClose']
 
 def getCloseReturns(symbol) -> pd.DataFrame:
     price_df = getHistory(symbol)
