@@ -23,8 +23,11 @@ def build_port_figure(symbols, port):
         "muP": muP
     })
     
-    fig = px.line(df, x = "sdP", y = "muP",
-                #   range_x=[0., 0.0325], range_y=[0.00005,0.0015]
+    minMuP = muP.min()
+    maxMuP = muP.max()
+    
+    fig = px.line(df, x = "sdP", y = "muP", title="Reward/Risk for Portfolio",
+                  range_x=[0., 1.5*sdP.max()], range_y=[minMuP * .5,maxMuP * 1.5]
                   )
     
     inds = np.argwhere(muP >= muP[minVarPort["ind"]]).flatten()
@@ -59,10 +62,16 @@ def build_port_table(symbols, port, budg):
     
     costs = np.array(list(map(lambda x: dg.getMarketPrice(x), symbols)))
     
+    def numpy_to_formatted(arr):
+        formatted_list=list(map(lambda x: format(x, ".3f"), sharpesPort["weights"].tolist()))
+        return formatted_list
+    
+    
+    
     df = pd.DataFrame({
         "Stock Symbol": symbols,
-        "Sharpe Weight": sharpesPort["weights"],
-        "Minimum Variance Weight": minVarPort["weights"],
+        "Sharpe Weight": numpy_to_formatted(sharpesPort["weights"]),
+        "Minimum Variance Weight": numpy_to_formatted(minVarPort["weights"]),
         "Sharpe Weight Allocation": ((budg * sharpesPort["weights"]) / costs).astype(int),
         "Min Var Allocation": ((budg * minVarPort["weights"]) / costs).astype(int)
     })

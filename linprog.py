@@ -10,10 +10,10 @@ tempMuf = 0.02/253
 
 syms = ["AAPL", "AEP", "BAX", "ED", "F", "GE", "GOOG", "MCD", "MSFT"]
 
-def getEffPort(symbols):
-    
-    lb = -.15
-    ub = .5
+def getEffPort(symbols, lowerb=-.15, upperb=.5):
+    # print(lowerb)
+    lb = lowerb
+    ub = upperb
     
     muf = tempMuf
     
