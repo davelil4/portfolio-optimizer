@@ -20,22 +20,28 @@ app.layout = dbc.Container(
         dcc.Store(id='local', storage_type='local'),
         dbc.Row(
             dbc.Col(
-                html.H1(children='Portfolio Optimizer', style={'textAlign':'center'}))),
-        # dcc.Dropdown(df.country.unique(), 'Canada', id='dropdown-selection'),
-        dbc.Row(
-            dbc.Col(dcc.Dropdown(
-                id="ticker-asset",
-                options=dg.stock_symbols,
-                placeholder="Select a Stock",
-                style={"color": "black"}
-            ), width=6)),
+                html.H1(children='Portfolio Optimizer', style={'textAlign':'center'})
+            )
+        ),
         dbc.Row(
             [
                 dbc.Col(
-                    dcc.Graph(id='graph-content', figure=px.line(dg.getHistory('MSFT'), y='Close', title="MSFT Close Stock Price"))
+                    [
+                        dbc.Stack([
+                            dcc.Dropdown(id="ticker-asset",options=list(dg.stock_symbols),placeholder="Select a Stock", style={"color": "black"}, value="MSFT"),
+                            dcc.Dropdown(id="ticker-chooser", options=['Close', 'LogReturns', 'Open'], persistence=True, persistence_type='session', style={"color": "black"}, value='Close'),
+                            dcc.Dropdown(id="ticker-plot-chooser", options=['Line', 'Histogram'], persistence=True, persistence_type='session', style={"color": "black"}, value='Line'),
+                            dcc.Dropdown(id="ticker-time-chooser", options=['1d', '5d', '1mo', '3mo', '6mo', '1y', 'ytd', 'max'], persistence=True, persistence_type='session', style={"color": "black"}, value='1mo')
+                            ], direction="horizontal", gap=3),
+                        
+                        dcc.Graph(id='graph-content')
+                    ]
                 ),
                 dbc.Col(
-                    dcc.Graph(id='port-graph', figure=lay.build_port_figure(test_syms, port))
+                    [
+                        dcc.Dropdown(),
+                        dcc.Graph(id='port-graph', figure=lay.build_port_figure(test_syms, port))
+                    ]
                 )
             ]
         ),
@@ -79,13 +85,21 @@ app.layout = dbc.Container(
 
 @callback(
     Output('graph-content', 'figure'),
-    Input('ticker-asset', 'value')
+    Input('ticker-asset', 'value'),
+    Input('ticker-chooser', 'value'),
+    Input('ticker-plot-chooser', 'value'),
+    Input('ticker-time-chooser', 'value'),
+    
 )
-def update_close_ticker(value):
-    if value is None:
+def update_close_ticker(symbol, choice, plot_choice, time_span):
+    if symbol is None:
         raise PreventUpdate
-    dff = dg.getHistory(value)
-    return px.line(dff, y='Close', title=value + " Close Stock Price")
+    dff = dg.getHistory(symbol, time_span)
+    
+    if plot_choice == 'Histogram':
+        return px.histogram(dff, x=choice, title=symbol + " " + choice)
+    
+    return px.line(dff, y=choice, title=symbol + " " + choice)
 
 @callback(
     Output('port-table', 'children'),
@@ -93,24 +107,30 @@ def update_close_ticker(value):
     Input('budget', 'value'),
     Input('lower-bound', 'value'),
     Input('upper-bound', 'value'),
+    Input('local', 'data'),
 )
-def update_from_bounds(budg, lb, ub):
+def update_from_bounds(budg, lb, ub, data):
 
     if budg is None:
         raise PreventUpdate
     
     port = None
     
-    if lb is not None and ub is not None:
-        port = lp.getEffPort(test_syms, lb, ub)
-    elif lb is not None:
-        port = lp.getEffPort(test_syms, lb)
-    elif ub is not None: 
-        port = lp.getEffPort(test_syms, ub)
-    else: 
-        port = lp.getEffPort(test_syms, budg)
+    syms = test_syms
     
-    return lay.build_port_table(test_syms, port, budg), lay.build_port_figure(test_syms, port)
+    if "symbols" in data: syms = data["symbols"]
+    
+    if lb is not None and ub is not None:
+        port = lp.getEffPort(syms, lb, ub)
+    elif lb is not None:
+        port = lp.getEffPort(syms, lb)
+    elif ub is not None: 
+        port = lp.getEffPort(syms, ub)
+    else: 
+        port = lp.getEffPort(syms, budg)
+    
+    
+    return lay.build_port_table(syms, port, budg), lay.build_port_figure(syms, port)
 
 @callback(
     Output('lower-bound', 'invalid'),
@@ -138,13 +158,15 @@ def update_symbols(add, remove, data, symbol):
     data = data if data is not None else {}
     
     ctx = callback_context
-    if ctx.triggered[0]['prop_id'] == 'add-button.n_clicks':
+    if ctx.triggered[0]['prop_id'] == 'add-button.n_clicks' and symbol in dg.stock_symbols:
         if "symbols" not in data:
             data["symbols"] = []
         data["symbols"].append(symbol)
     else:
         if symbol in data["symbols"]:
             data["symbols"].remove(symbol)
+            if len(data["symbols"]) == 0:
+                del data["symbols"]
     
     return data
 

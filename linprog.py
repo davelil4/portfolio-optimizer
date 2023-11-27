@@ -21,7 +21,7 @@ def getEffPort(symbols, lowerb=-.15, upperb=.5):
     
     m = len(symbols)
     
-    # rets = dg.getLogReturnsFromList(symbols)
+    rets = dg.getLogReturnsFromList(symbols)
     AmatLP1 = np.column_stack((np.diag(np.diag(np.full((m, m),1))), np.full((m, m),0)))
     AmatLP2 = np.column_stack((np.full((m, m),0), np.diag(np.diag(np.full((m, m),1)))))
     # AmatLP3 = np.column_stack((np.full((1, m), 1), np.full((1, m), -1)))
@@ -31,9 +31,9 @@ def getEffPort(symbols, lowerb=-.15, upperb=.5):
     AmatEQ = np.column_stack((np.full((1, m), 1), np.full((1, m), -1)))
     # AmatEQ = np.full((1, m), 1)
     
-    res = pyreadr.read_r('returns.Jul25.2023.RData')
+    # res = pyreadr.read_r('returns.Jul25.2023.RData')
     # print(res['returns']["AAPL"])
-    rets = pd.DataFrame(res["returns"])[syms]
+    # rets = pd.DataFrame(res["returns"])[syms]
     
     means = rets.mean()
     # print(means.to_numpy())
