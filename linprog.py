@@ -31,7 +31,7 @@ def getEffPort(symbols, lowerb=-.15, upperb=.5):
     AmatEQ = np.column_stack((np.full((1, m), 1), np.full((1, m), -1)))
     # AmatEQ = np.full((1, m), 1)
     
-    # res = pyreadr.read_r('returns.Jul25.2023.RData')
+    # res = pyreadr.read_r('data/returns.Jul25.2023.RData')
     # print(res['returns']["AAPL"])
     # rets = pd.DataFrame(res["returns"])[syms]
     
