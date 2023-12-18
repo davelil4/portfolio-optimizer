@@ -6,6 +6,7 @@ import pandas as pd
 import data_grab as dg
 import layout as lay
 import linprog as lp
+import modeling as ml
 
 # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
 
@@ -78,7 +79,10 @@ app.layout = dbc.Container(
             [
                 dbc.Col(
                     id='port-table',
-                )
+                ),
+                # dbc.Col(
+                #     dcc.Graph(figure=ml.predictStock("MSFT"))
+                # )
             ]
         )
     ])

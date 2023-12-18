@@ -4,13 +4,14 @@ import math
 from dotenv import load_dotenv
 from stocksymbol import StockSymbol
 import os
+import numpy as np
 load_dotenv()
 
 def getHistory(symbol, per):
     stock = yf.Ticker(symbol)
     hist = stock.history(period=per)
     hist["Returns"] = (hist["Close"] / hist["Close"].shift(1)).iloc[1:, ]
-    hist["LogReturns"] = hist["Returns"].apply(lambda x: math.log(x))
+    hist["LogReturns"] = np.log(hist["Returns"])
     return hist
 
 def getMarketPrice(symbol):
@@ -23,7 +24,7 @@ def getCloseReturns(symbol) -> pd.DataFrame:
 
 def getLogReturnsFromSymbol(symbol):
     df = getCloseReturns(symbol)
-    df["Returns"] = df.apply(lambda x: math.log(x))
+    df["Returns"] = np.log(df)
     return df["Returns"]
 
 # def getLogReturnsHistory(symbol):
