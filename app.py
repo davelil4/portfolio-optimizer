@@ -114,7 +114,7 @@ def update_close_ticker(symbol, choice, plot_choice, time_span):
     Input('local', 'data'),
 )
 def update_from_bounds(budg, lb, ub, data):
-
+    data = data if data is not None else {}
     if budg is None:
         raise PreventUpdate
     

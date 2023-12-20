@@ -7,7 +7,7 @@ from sklearn.metrics import precision_score
 import numpy as np
 load_dotenv()
 
-def predictStock(symbol):
+def predictNextDayClose(symbol):
     DATA_PATH = f"data/{symbol}_data.json"
     if os.path.exists(DATA_PATH):
         # Read from file if we've already downloaded the data.
@@ -90,7 +90,7 @@ def predictStock(symbol):
             preds = model.predict_proba(test[predictors])[:,1]
             preds = pd.Series(preds, index=test.index)
             preds[preds > .6] = 1
-            preds[preds<=.6] = 0
+            preds[preds <= .6] = 0
 
             # Combine predictions and test values
             combined = pd.concat({"Target": test["Target"],"Predictions": preds}, axis=1)
@@ -120,7 +120,8 @@ def predictStock(symbol):
     data["high_close_ratio"] = data["High"] / data["Close"]
     data["low_close_ratio"] = data["Low"] / data["Close"]
     
-    full_predictors = predictors + ["weekly_mean", "quarterly_mean", "annual_mean", "annual_weekly_mean", "annual_quarterly_mean", "open_close_ratio", "high_close_ratio", "low_close_ratio"]
+    full_predictors = predictors + ["weekly_mean", "quarterly_mean", "annual_mean", "annual_weekly_mean", "annual_quarterly_mean", 
+                                    "open_close_ratio", "high_close_ratio", "low_close_ratio", "weekly_trend"]
 
     predictions = backtest(data.iloc[365:], model, full_predictors)
     
@@ -128,22 +129,22 @@ def predictStock(symbol):
 
 
 
-def forwardtest(data, model, predictors, n_days, n_sims, symbol):
+def forwardDailyTest(data, model, predictors, n_days, n_sims, symbol):
     sims = []
     
-    for sim in n_sims:
+    for _ in n_sims:
         predictions = []
 
-        d = data[-100:]
+        d = data[-100:].copy()
         
-        for step in range(100):
-            train = d
+        for _ in range(n_days):
+            train = d[-100:]
             
             test_dict = {}
             
             for col, _ in d.item():
-                test_dict[col] = np.random.choice(d[col], size=100, replace=True)
-            
+                test_dict[col] = np.random.choice(d[col], size=1, replace=True)
+            test_dict["Target"] = test_dict["Close"] / d.iloc[99]['Close']
             test = pd.DataFrame(test_dict)
             
             model.fit(train[predictors], train["Target"])
@@ -151,10 +152,12 @@ def forwardtest(data, model, predictors, n_days, n_sims, symbol):
             preds = model.predict_proba(test[predictors])[:,1]
             preds = pd.Series(preds, index=test.index)
             preds[preds > .6] = 1
-            preds[preds<=.6] = 0
+            preds[preds <= .6] = 0
             
             # Combine predictions and test values
             combined = pd.concat({"Target": test["Target"],"Predictions": preds}, axis=1)
 
             predictions.append(combined)
+        
+        sims.append(pd.concat(predictions))
             
