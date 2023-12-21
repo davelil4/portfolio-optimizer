@@ -139,12 +139,18 @@ def forwardDailyTest(data, model, predictors, n_days, n_sims, symbol):
         
         for _ in range(n_days):
             train = d[-100:]
+            returns_d = (d / d.shift(1)).iloc[1:]
             
             test_dict = {}
             
-            for col, _ in d.item():
-                test_dict[col] = np.random.choice(d[col], size=1, replace=True)
-            test_dict["Target"] = test_dict["Close"] / d.iloc[99]['Close']
+            t = 0
+            
+            for col, _ in returns_d.item():
+                if col == 'Close': 
+                    t = np.random.choice(returns_d[col], size=1, replace=True)
+                else:
+                    test_dict[col] = np.random.choice(returns_d[col], size=1, replace=True) * d.iloc[99][col]
+            test_dict["Target"] = 0 if t <= 1 else 1
             test = pd.DataFrame(test_dict)
             
             model.fit(train[predictors], train["Target"])
@@ -156,8 +162,9 @@ def forwardDailyTest(data, model, predictors, n_days, n_sims, symbol):
             
             # Combine predictions and test values
             combined = pd.concat({"Target": test["Target"],"Predictions": preds}, axis=1)
+            d = pd.concat(d, test)
 
             predictions.append(combined)
         
         sims.append(pd.concat(predictions))
-            
+    return pd.concat(sims)
