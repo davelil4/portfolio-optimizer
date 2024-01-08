@@ -77,7 +77,6 @@ pyreadr==0.5.0
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 pytz==2023.3.post1
-pywin32==306 ; sys_platform == 'win32'
 pyzmq==25.1.2
 qdldl==0.1.7.post0
 qpsolvers==4.0.1
@@ -94,6 +93,7 @@ soupsieve==2.5
 stack-data==0.6.3
 stanio==0.3.0
 stocksymbol==0.0.5
+ta==0.11.0
 tenacity==8.2.3
 threadpoolctl==3.2.0
 toolz==0.12.0
