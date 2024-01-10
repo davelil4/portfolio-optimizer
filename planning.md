@@ -5,3 +5,8 @@
     - MarketAUX (100 req/day)
     - financial-news-api-python
     - https://eod-stock-api.site/docs/financial-news
+- federal data
+    - FREDApi
+        - https://github.com/mortada/fredapi
+        - can use for interest rates (EFFR)
+    - Pandas-datareader (FEDFUNDS)
