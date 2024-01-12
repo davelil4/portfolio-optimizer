@@ -10,3 +10,11 @@
         - https://github.com/mortada/fredapi
         - can use for interest rates (EFFR)
     - Pandas-datareader (FEDFUNDS)
+- Time-series analysis packages
+    - ta
+    - TA-Lib
+    - pandas-ta
+        - can use ta-lib if both installed
+    - fin-ta
+- Other modeling libraries
+    - XGBoost
