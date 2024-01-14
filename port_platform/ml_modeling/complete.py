@@ -15,6 +15,7 @@ from icecream import ic
 ml_tab = html.Div(
     [
         dcc.Store(id='sim_data', storage_type='session'),
+        html.H2("Simulations"),
         dbc.Row([
             dbc.Col(
                 dcc.Graph(id='MCSims'), width='6'
@@ -51,7 +52,7 @@ def createDate(string):
         Output('MCSims', 'figure'),
         Output('strat', 'figure'),
         Output('ticker_data', 'data'),
-        # Output('sim_data', 'data')
+        Output('sim_data', 'data')
     ],
     [
         Input('b_sims', 'n_clicks'),
@@ -86,7 +87,12 @@ def simulations(b_sims, nsims, ndays, symbol, data):
         nsims
     )
     
-    return ml.simFigure(hist, res["data"]), ml.stratFigure(hist, res, nsims, ndays), dict(data)
+    imp = {
+        "precision": res["precision"], 
+        "grets_avg": res["grets_avg"]
+    }
+    
+    return ml.simFigure(hist, res["data"]), ml.stratFigure(hist, res, nsims, ndays), dict(data), imp
     
     
 @callback(
@@ -105,5 +111,5 @@ def simulated_precision(data):
     score = data["precision"]
     rets = data["grets_avg"]
     
-    return f"Precision: {score}", f"Grets: {rets}"
+    return f"Precision: {score:.4f}", f"Grets: {rets:.4f}"
     
