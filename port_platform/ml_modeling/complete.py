@@ -11,11 +11,10 @@ from datetime import datetime
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from icecream import ic
-import json
-from plotly.utils import PlotlyJSONEncoder
 
 ml_tab = html.Div(
     [
+        dcc.Store(id='sim_data', storage_type='session'),
         dbc.Row([
             dbc.Col(
                 dcc.Graph(id='MCSims'), width='6'
@@ -32,7 +31,13 @@ ml_tab = html.Div(
                     dcc.Dropdown(options=dg.stock_symbols, id="sim_stock"),
                     dbc.Button("Run Simulations", "b_sims", color="primary"),
                 ], direction='horizontal', gap=3)
-            ])
+            ], width=6),
+            dbc.Col([
+                dbc.Stack([
+                    dbc.Label(id="sim_prec"),
+                    dbc.Label(id="sim_grets")
+                ], direction='horizontal', gap=3),
+            ], width=6)
         ])
     ],
     id='ml_tab'
@@ -45,7 +50,8 @@ def createDate(string):
     [
         Output('MCSims', 'figure'),
         Output('strat', 'figure'),
-        Output('ticker_data', 'data')
+        Output('ticker_data', 'data'),
+        # Output('sim_data', 'data')
     ],
     [
         Input('b_sims', 'n_clicks'),
@@ -60,17 +66,17 @@ def simulations(b_sims, nsims, ndays, symbol, data):
         raise PreventUpdate
     
     hist = None
-    if not data or (pd.to_datetime(data['last_date']) < pd.Timestamp.today("America/New_York")):
+    if not data or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()):
         data = {}
         hist = dg.getHistory(symbol, 'max')
         hist['Date'] = hist.index
         data[symbol] = hist.to_dict('records')
+        del hist['Date']
         data['last_date'] = hist.iloc[[-1]].index[0]
     else:
         hist = pd.DataFrame.from_dict(data[symbol])
         hist.set_index('Date')
-    
-    print(hist)
+        del hist['Date']
     
     res = ml.runSims(
         hist, 
@@ -83,6 +89,21 @@ def simulations(b_sims, nsims, ndays, symbol, data):
     return ml.simFigure(hist, res["data"]), ml.stratFigure(hist, res, nsims, ndays), dict(data)
     
     
-        
+@callback(
+    [
+        Output('sim_prec', 'children'),
+        Output('sim_grets', 'children')
+    ],
+    [
+        Input('sim_data', 'data')
+    ]
+)
+def simulated_precision(data):
+    if data is None:
+        raise PreventUpdate
     
+    score = data["precision"]
+    rets = data["grets_avg"]
+    
+    return f"Precision: {score}", f"Grets: {rets}"
     

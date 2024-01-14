@@ -351,12 +351,10 @@ def simFigure(ticker_hist, sims):
     ys = np.concatenate(all_ys_with_nan)
     # vys = np.concatenate(all_vys_with_nan)
 
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=("Close", "Volume"))
+    fig = go.Figure()
 
     fig.add_trace(
-        go.Scattergl(x=xs, y=ys, mode='lines', opacity=.05, line={'color': 'darkblue'}, name="Stock Price Sim"), 1, 1
+        go.Scattergl(x=xs, y=ys, mode='lines', opacity=.05, line={'color': 'darkblue'}, name="Stock Price Sim")
     )
 
     # fig.add_trace(
@@ -366,7 +364,7 @@ def simFigure(ticker_hist, sims):
     lim = 365
 
     fig.add_trace(
-        go.Scatter(x=ticker_hist.tail(lim).index, y=ticker_hist["Close"].tail(lim), name="Stock Price Hist"), 1, 1
+        go.Scatter(x=ticker_hist.tail(lim).index, y=ticker_hist["Close"].tail(lim), name="Stock Price Hist")
     )
     # fig.add_trace(
     #     go.Scatter(x=ticker_hist.tail(lim).index, y=ticker_hist["Volume"].tail(lim), name = "Volume Hist"), 1, 2
