@@ -67,20 +67,17 @@ ml_tab = html.Div(
                         ], style={'width': '50%'})
                     ]),
                     dbc.Col([
-                        dcc.Graph('ms_graph'),
+                        dcc.Dropdown(['Model Selection', 'Backtesting'], 'Model Selection', id='dd_ms_graph'),
                         html.Br(),
-                        html.Div(
-                            [
-                                dbc.Button('Run Model Selection', style={'margin-right': '10px'}, id='b_ms'),
-                                dcc.Dropdown(dg.stock_symbols, id='dd_ms')
-                            ],
-                            style= {
-                                'display': 'flex',
-                                'align-items': 'center',
-                                'width': '100%'
-                            }
-                        )
-                        
+                        html.Div([
+                            dcc.Graph('ms_graph'),
+                            dbc.Button('Run Model Selection', style={'margin-right': '10px'}, id='b_ms'),
+                        ], "ms_comps"),
+                        html.Div([
+                            dcc.Graph('bt_graph'),
+                            dbc.Button('Run Backtesting', style={'margin-right': '10px'}, id='b_backtest'),
+                        ], "bt_comps"),  
+                        dcc.Dropdown(dg.stock_symbols, id='dd_ms')
                         # dbc.Stack([
                         #     dbc.Button('Run Model Selection'),
                         #     dcc.Dropdown(dg.stock_symbols, id='dd_ms')
@@ -119,26 +116,26 @@ ml_tab = html.Div(
                 ])
             ])
         ),
-        html.Br(),
-        dbc.Card(
-            dbc.CardBody([
-                html.H2("Backtesting"),
-                dbc.Row(
-                    dbc.Col(
-                        dcc.Graph(id='predictions')
-                    )
-                ),
-                html.Br(),
-                dbc.Row([
-                    dbc.Col(
-                        dbc.Button("Run Backtesting", 'b_backtest')
-                    ),
-                    dbc.Col(
-                        dbc.Label(id='back_prec')
-                    )
-                ])
-            ])
-        )
+        # html.Br(),
+        # dbc.Card(
+        #     dbc.CardBody([
+        #         html.H2("Backtesting"),
+        #         dbc.Row(
+        #             dbc.Col(
+        #                 dcc.Graph(id='predictions')
+        #             )
+        #         ),
+        #         html.Br(),
+        #         dbc.Row([
+        #             dbc.Col(
+        #                 dbc.Button("Run Backtesting", 'b_backtest')
+        #             ),
+        #             dbc.Col(
+        #                 dbc.Label(id='back_prec')
+        #             )
+        #         ])
+        #     ])
+        # )
     ],
     id='ml_tab'
 )
@@ -230,8 +227,11 @@ def run_model_selection(b_ms, data, symbol, cl_preds, og_preds):
     
     cl_preds = [] if not cl_preds else cl_preds
     
-    train = ml.create_new_predictors(hist, cl_preds)
-    train = ml.create_shifted_data(train, 1).dropna()
+    train = ml.create_shifted_data(hist, 1)
+    train = ml.create_new_predictors(train, cl_preds).dropna()
+    
+    
+    # ic(train)
     
     return ms.drawMSFigure(*ms.model_selection(train, cl_preds + og_preds))
 
@@ -249,7 +249,6 @@ def create_model_params(model_name):
                     dbc.Input({"type": "param", "index": arg}, value=default)
                 ], direction='horizontal', gap=3
             )
-    
     
     if model_name is None:
         raise PreventUpdate
@@ -274,6 +273,47 @@ def create_model_params(model_name):
         )
     
     return params
+
+@callback(
+    [
+        Output('ms_graph', 'style'),
+        Output('b_ms', 'style'),
+        Output('bt_graph', 'style'),
+        Output('b_backtest', 'style')
+    ],
+    [
+        Input('dd_ms_graph', 'value'),
+        State('ms_graph', 'style'),
+        State('bt_graph', 'style'),
+        State('b_ms', 'style'),
+        State('b_backtest', 'style')
+    ]
+)
+def model_graph(dd, gms, gbt, bms, bbt):
+    
+    def turn_off(items):
+        new_items = []
+        for i in items:
+            if i is None: i = {}
+            i = {**i, 'display': 'none'}
+            new_items.append(i)
+        return new_items
+    
+    def turn_on(items):
+        new_items = []
+        for i in items:
+            if i is None: i = {}
+            i = {**i, 'display': 'block'}
+            new_items.append(i)
+        return new_items
+    
+    ms_items = [gms, bms]
+    bt_items = [gbt, bbt]
+    
+    if dd == 'Model Selection':
+        return turn_on(ms_items) + turn_off(bt_items)
+    return turn_off(ms_items) + turn_on(bt_items)
+
 
 # @callback(
 #     Output('b_backtest', 'style'),
