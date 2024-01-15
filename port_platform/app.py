@@ -1,8 +1,11 @@
 import logging    # first of all import the module
-from dash import Dash, html, Output, Input
+from dash import Dash, html, Output, Input, DiskcacheManager
 import dash_bootstrap_components as dbc
 from portfolio_info.complete import *
 from ml_modeling.complete import *
+import diskcache
+cache = diskcache.Cache("./cache")
+background_callback_manager = DiskcacheManager(cache)
 
 logging.basicConfig(filename='std.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 logging.warning('This message will get logged on to a file')
@@ -10,7 +13,7 @@ logging.warning('This message will get logged on to a file')
 # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
 
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
+app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE], background_callback_manager=background_callback_manager)
 
 
 app.layout = dbc.Container(

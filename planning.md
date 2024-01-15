@@ -18,3 +18,6 @@
     - fin-ta
 - Other modeling libraries
     - XGBoost
+- JSONifying Fit Models:
+    - sklearn-json
+    - sklearn-export
