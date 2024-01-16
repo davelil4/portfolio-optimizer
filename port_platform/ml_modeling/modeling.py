@@ -75,12 +75,16 @@ def generate_preds(train, test, model, predictors, probability=True):
     return combined
 
 
-def backtest(data, model, predictors, start=1000, step=750, probability=True):
+def backtest(data, model, predictors, start=1000, step=750, probability=True, block_size=None):
     predictions = []
     # Loop over the dataset in increments
     for i in range(start, data.shape[0], step):
         # Split into train and test sets
-        train = data.iloc[0:i].copy()
+        
+        if block_size is None:
+            train = data.iloc[0:i].copy()
+        else:
+            train = data.iloc[i-block_size:i].copy()
         test = data.iloc[i:(i+step)].copy()
 
         combined = generate_preds(train, test, model, predictors, probability)

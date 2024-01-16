@@ -6,7 +6,6 @@ import plotly.express as px
 import data_grab as dg
 import ml_modeling.modeling as ml
 from ml_modeling.layout import *
-from datetime import date
 from datetime import datetime
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -18,25 +17,10 @@ models = {
     'RandomForestClassifier': RandomForestClassifier
 }
 
-def get_hist(data, symbol):
-    if not data or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()):
-        data = {}
-        hist = dg.getHistory(symbol, 'max')
-        hist['Date'] = hist.index
-        data[symbol] = hist.to_dict('records')
-        del hist['Date']
-        data['last_date'] = hist.iloc[[-1]].index[0]
-    else:
-        hist = pd.DataFrame.from_dict(data[symbol])
-        hist.set_index('Date')
-        del hist['Date']
-    
-    return hist
-
 ml_tab = html.Div(
     [
         dcc.Store(id='sim_data', storage_type='memory'),
-        dcc.Store(id='models', storage_type='local'),
+        dcc.Store(id='model', storage_type='memory'),
         dbc.Card(
             dbc.CardBody([
                 html.H2("Model Selection"),
@@ -64,24 +48,28 @@ ml_tab = html.Div(
                             html.H5("Model"),
                             dcc.Dropdown(list(models.keys()),id='model_select'),
                             html.Div(id='model_params')
-                        ], style={'width': '50%'})
+                        ], style={'width': '50%'}),
+                        html.Br(),
+                        dbc.Stack([
+                            dbc.Button("Save Model", "b_save"),
+                            dbc.Label(id='l_succ')
+                        ], direction='horizontal', gap=3)
                     ]),
                     dbc.Col([
                         dcc.Dropdown(['Model Selection', 'Backtesting'], 'Model Selection', id='dd_ms_graph'),
                         html.Br(),
                         html.Div([
                             dcc.Graph('ms_graph'),
-                            dbc.Button('Run Model Selection', style={'margin-right': '10px'}, id='b_ms'),
+                            html.Br(),
+                            dbc.Button('Run Model Selection', id='b_ms'),
                         ], "ms_comps"),
                         html.Div([
                             dcc.Graph('bt_graph'),
-                            dbc.Button('Run Backtesting', style={'margin-right': '10px'}, id='b_backtest'),
+                            html.Br(),
+                            dbc.Button('Run Backtest', id='b_bt'),
                         ], "bt_comps"),  
-                        dcc.Dropdown(dg.stock_symbols, id='dd_ms')
-                        # dbc.Stack([
-                        #     dbc.Button('Run Model Selection'),
-                        #     dcc.Dropdown(dg.stock_symbols, id='dd_ms')
-                        # ], direction='horizontal', gap=3),
+                        html.Br(),
+                        dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '30%'})
                     ])
                 ])
             ])
@@ -140,6 +128,21 @@ ml_tab = html.Div(
     id='ml_tab'
 )
 
+def get_hist(data, symbol):
+    if not data or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()):
+        data = {}
+        hist = dg.getHistory(symbol, 'max')
+        hist['Date'] = hist.index
+        data[symbol] = hist.to_dict('records')
+        del hist['Date']
+        data['last_date'] = hist.iloc[[-1]].index[0]
+    else:
+        hist = pd.DataFrame.from_dict(data[symbol])
+        hist.set_index('Date')
+        del hist['Date']
+    
+    return hist
+
 def createDate(string):
     return datetime.strptime(string, '%Y-%M-%D').date()
 
@@ -148,6 +151,12 @@ def model_from_inputs(model_name, input_dicts, values):
     param_map = {params[i]: values[i] for i in range(len(values))}
     return models[model_name](**param_map)
 
+def createTraining(hist, cl_preds, shift):
+    cl_preds = [] if not cl_preds else cl_preds
+    train = ml.create_shifted_data(hist, shift)
+    train = ml.create_new_predictors(train, cl_preds)
+    
+    return train
 
 @callback(
     [
@@ -226,9 +235,7 @@ def run_model_selection(b_ms, data, symbol, cl_preds, og_preds):
     hist = get_hist(data, symbol)
     
     cl_preds = [] if not cl_preds else cl_preds
-    
-    train = ml.create_shifted_data(hist, 1)
-    train = ml.create_new_predictors(train, cl_preds).dropna()
+    train = createTraining(hist, cl_preds, 1).dropna()
     
     
     # ic(train)
@@ -276,44 +283,63 @@ def create_model_params(model_name):
 
 @callback(
     [
-        Output('ms_graph', 'style'),
-        Output('b_ms', 'style'),
-        Output('bt_graph', 'style'),
-        Output('b_backtest', 'style')
+        Output('ms_comps', 'hidden'),
+        Output('bt_comps', 'hidden'),
     ],
-    [
-        Input('dd_ms_graph', 'value'),
-        State('ms_graph', 'style'),
-        State('bt_graph', 'style'),
-        State('b_ms', 'style'),
-        State('b_backtest', 'style')
-    ]
+    Input('dd_ms_graph', 'value'),
 )
-def model_graph(dd, gms, gbt, bms, bbt):
-    
-    def turn_off(items):
-        new_items = []
-        for i in items:
-            if i is None: i = {}
-            i = {**i, 'display': 'none'}
-            new_items.append(i)
-        return new_items
-    
-    def turn_on(items):
-        new_items = []
-        for i in items:
-            if i is None: i = {}
-            i = {**i, 'display': 'block'}
-            new_items.append(i)
-        return new_items
-    
-    ms_items = [gms, bms]
-    bt_items = [gbt, bbt]
+def model_graph(dd):
     
     if dd == 'Model Selection':
-        return turn_on(ms_items) + turn_off(bt_items)
-    return turn_off(ms_items) + turn_on(bt_items)
+        return False, True
+    return True, False
 
+
+@callback(
+    [
+        Output('model', 'data'),
+        Output('l_succ', 'children')
+    ],
+    [
+        Input('b_save', 'n_clicks'),
+        State('model_select', 'value'),
+        State({'type': 'param', 'index': ALL}, 'value'),
+        State({'type': 'param', 'index': ALL}, 'id')
+    ]
+)
+def save_model(b_save, model_name, vals, ids):
+    if b_save is None:
+        raise PreventUpdate
+    
+    return {model_name, ids, vals}, "Successfully saved model."
+
+
+@callback(
+    Output('bt_graph', 'figure'),
+    [
+        Input('b_bt', 'n_clicks'),
+        State('model', 'data'),
+        State('ticker_data', 'data'),
+        State('dd_ms', 'value'),
+        State('cl_ex_preds', 'value'),
+        State('cl_og_preds', 'value')
+    ]
+)
+def backtest_model(b_bt, model_data, ticker_data, symbol, cl_preds, og_preds):
+    if b_bt is None: raise PreventUpdate
+    
+    hist = get_hist(ticker_data, symbol)
+    cl_preds = [] if not cl_preds else cl_preds
+    
+    data = createTraining(hist, cl_preds, 1)
+    
+    res = ml.backtest(
+        data,
+        sk_json.from_dict(model_data),
+        cl_preds + og_preds
+    )
+    
+    return res.plot(backend='plotly').get_figure()
 
 # @callback(
 #     Output('b_backtest', 'style'),
