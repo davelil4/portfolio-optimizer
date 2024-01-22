@@ -12,6 +12,8 @@ from sklearn.ensemble import RandomForestClassifier
 import ml_modeling.model_selection as ms
 import inspect
 from icecream import ic
+import joblib as jb
+from sklearn.metrics import precision_score
 
 models = {
     'RandomForestClassifier': RandomForestClassifier
@@ -67,6 +69,7 @@ ml_tab = html.Div(
                             dcc.Graph('bt_graph'),
                             html.Br(),
                             dbc.Button('Run Backtest', id='b_bt'),
+                            dbc.Label(id='bt_prec')
                         ], "bt_comps"),  
                         html.Br(),
                         dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '30%'})
@@ -311,35 +314,46 @@ def save_model(b_save, model_name, vals, ids):
     if b_save is None:
         raise PreventUpdate
     
-    return {model_name, ids, vals}, "Successfully saved model."
+    jb.dump(model_from_inputs(model_name, ids, vals), 'model.joblib')
+    
+    return [model_name, ids, vals], "Successfully saved model."
 
 
 @callback(
-    Output('bt_graph', 'figure'),
+    [
+        Output('bt_graph', 'figure'),
+        Output('bt_prec', 'children')
+    ],
     [
         Input('b_bt', 'n_clicks'),
-        State('model', 'data'),
+        # State('model', 'data'),
         State('ticker_data', 'data'),
         State('dd_ms', 'value'),
         State('cl_ex_preds', 'value'),
         State('cl_og_preds', 'value')
-    ]
+    ],
+    background=True,
+    running=[
+        (Output("b_bt", "disabled"), True, False),
+    ],
 )
-def backtest_model(b_bt, model_data, ticker_data, symbol, cl_preds, og_preds):
+def backtest_model(b_bt, ticker_data, symbol, cl_preds, og_preds):
     if b_bt is None: raise PreventUpdate
     
     hist = get_hist(ticker_data, symbol)
     cl_preds = [] if not cl_preds else cl_preds
     
-    data = createTraining(hist, cl_preds, 1)
+    data = createTraining(hist, cl_preds, 1).dropna()
     
     res = ml.backtest(
         data,
-        sk_json.from_dict(model_data),
+        jb.load('model.joblib'), 
         cl_preds + og_preds
     )
     
-    return res.plot(backend='plotly').get_figure()
+    prec = precision_score(res["Target"], res["Predictions"])
+    
+    return res.plot(backend='plotly'), f"Precision: {prec:.3f}"
 
 # @callback(
 #     Output('b_backtest', 'style'),
