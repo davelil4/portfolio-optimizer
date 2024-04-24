@@ -6,3 +6,4 @@ data/*.json
 .vscode
 port_platform/cache
 port_platform/model.joblib
+.DS_Store

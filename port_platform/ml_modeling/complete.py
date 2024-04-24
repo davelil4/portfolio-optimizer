@@ -72,7 +72,7 @@ ml_tab = html.Div(
                             dbc.Label(id='bt_prec')
                         ], "bt_comps"),  
                         html.Br(),
-                        dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '30%'})
+                        dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '40%'})
                     ])
                 ])
             ])
@@ -107,26 +107,6 @@ ml_tab = html.Div(
                 ])
             ])
         ),
-        # html.Br(),
-        # dbc.Card(
-        #     dbc.CardBody([
-        #         html.H2("Backtesting"),
-        #         dbc.Row(
-        #             dbc.Col(
-        #                 dcc.Graph(id='predictions')
-        #             )
-        #         ),
-        #         html.Br(),
-        #         dbc.Row([
-        #             dbc.Col(
-        #                 dbc.Button("Run Backtesting", 'b_backtest')
-        #             ),
-        #             dbc.Col(
-        #                 dbc.Label(id='back_prec')
-        #             )
-        #         ])
-        #     ])
-        # )
     ],
     id='ml_tab'
 )
@@ -261,7 +241,7 @@ def create_model_params(model_name):
         return dbc.Stack(
                 [
                     dbc.Label(f"{arg}: "),
-                    dbc.Input({"type": "param", "index": arg}, value=default)
+                    dbc.Input({"type": "model_param", "index": arg}, value=default)
                 ], direction='horizontal', gap=3
             )
     
@@ -311,8 +291,8 @@ def model_graph(dd):
     [
         Input('b_save', 'n_clicks'),
         State('model_select', 'value'),
-        State({'type': 'param', 'index': ALL}, 'value'),
-        State({'type': 'param', 'index': ALL}, 'id')
+        State({'type': 'model_param', 'index': ALL}, 'value'),
+        State({'type': 'model_param', 'index': ALL}, 'id')
     ]
 )
 def save_model(b_save, model_name, vals, ids):
@@ -367,8 +347,8 @@ def backtest_model(b_bt, ticker_data, symbol, cl_preds, og_preds):
 #     [
 #         State('b_backtest', 'style'),
 #         Input('model_params', 'children'),
-#         State({'type': 'param', 'index': ALL}, 'value'),
-#         State({'type': 'param', 'index': ALL}, 'id')
+#         State({'type': 'model_param', 'index': ALL}, 'value'),
+#         State({'type': 'model_param', 'index': ALL}, 'id')
 #     ]
 # )
 # def test_params(styl, div, values, ids):
