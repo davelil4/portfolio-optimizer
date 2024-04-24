@@ -1,0 +1,2 @@
+- fix `get_hist` so that it just looks for symbol from data, but data always updates regardless
+- Fix indicator selection and viewing
