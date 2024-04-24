@@ -144,7 +144,7 @@ def get_hist(data, symbol):
         hist.set_index('Date')
         del hist['Date']
     
-    return hist
+    return hist, data
 
 def createDate(string):
     return datetime.strptime(string, '%Y-%M-%D').date()
@@ -165,7 +165,7 @@ def createTraining(hist, cl_preds, shift):
     [
         Output('MCSims', 'figure'),
         Output('strat', 'figure'),
-        Output('ticker_data', 'data'),
+        Output('ticker_data', 'data', allow_duplicate=True),
         Output('sim_data', 'data')
     ],
     [
@@ -174,13 +174,14 @@ def createTraining(hist, cl_preds, shift):
         State('ndays', 'value'),
         State('sim_stock', 'value'),
         State('ticker_data', 'data')
-    ]
+    ],
+    prevent_initial_call=True
 )
 def simulations(b_sims, nsims, ndays, symbol, data):
     if not b_sims or not nsims or not ndays or not symbol:
         raise PreventUpdate
     
-    hist = get_hist(data, symbol)
+    hist, data = get_hist(data, symbol)
     
     res = ml.runSims(
         hist, 
@@ -218,7 +219,10 @@ def simulated_precision(data):
 
 @callback(
     
-    Output('ms_graph', 'figure'),
+    [
+        Output('ms_graph', 'figure'),
+        Output('ticker_data', 'data', allow_duplicate=True)
+    ],
     [
         Input('b_ms','n_clicks'),
         State('ticker_data', 'data'),
@@ -230,12 +234,13 @@ def simulated_precision(data):
     running=[
         (Output("b_ms", "disabled"), True, False),
     ],
+    prevent_initial_call=True
 )
 def run_model_selection(b_ms, data, symbol, cl_preds, og_preds):
-    if not b_ms or not data or not symbol:
+    if not b_ms or not symbol:
         raise PreventUpdate
 
-    hist = get_hist(data, symbol)
+    hist, data = get_hist(data, symbol)
     
     cl_preds = [] if not cl_preds else cl_preds
     train = createTraining(hist, cl_preds, 1).dropna()
@@ -243,7 +248,7 @@ def run_model_selection(b_ms, data, symbol, cl_preds, og_preds):
     
     # ic(train)
     
-    return ms.drawMSFigure(*ms.model_selection(train, cl_preds + og_preds))
+    return ms.drawMSFigure(*ms.model_selection(train, cl_preds + og_preds)), dict(data)
 
 
 @callback(
@@ -322,7 +327,8 @@ def save_model(b_save, model_name, vals, ids):
 @callback(
     [
         Output('bt_graph', 'figure'),
-        Output('bt_prec', 'children')
+        Output('bt_prec', 'children'),
+        Output('ticker_data', 'data', allow_duplicate=True)
     ],
     [
         Input('b_bt', 'n_clicks'),
@@ -336,24 +342,25 @@ def save_model(b_save, model_name, vals, ids):
     running=[
         (Output("b_bt", "disabled"), True, False),
     ],
+    prevent_initial_call=True
 )
 def backtest_model(b_bt, ticker_data, symbol, cl_preds, og_preds):
     if b_bt is None: raise PreventUpdate
     
-    hist = get_hist(ticker_data, symbol)
+    hist, data = get_hist(ticker_data, symbol)
     cl_preds = [] if not cl_preds else cl_preds
     
-    data = createTraining(hist, cl_preds, 1).dropna()
+    b_data = createTraining(hist, cl_preds, 1).dropna()
     
     res = ml.backtest(
-        data,
+        b_data,
         jb.load('model.joblib'), 
         cl_preds + og_preds
     )
     
     prec = precision_score(res["Target"], res["Predictions"])
     
-    return res.plot(backend='plotly'), f"Precision: {prec:.3f}"
+    return res.plot(backend='plotly'), f"Precision: {prec:.3f}", dict(data)
 
 # @callback(
 #     Output('b_backtest', 'style'),
