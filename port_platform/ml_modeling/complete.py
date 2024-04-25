@@ -1,7 +1,7 @@
 from dash import html, dcc, callback, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
-import plotly.express as px
+# import plotly.express as px
 # import pandas as pd
 import data_grab as dg
 import ml_modeling.modeling as ml
@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 import ml_modeling.model_selection as ms
 import inspect
-from icecream import ic
+# from icecream import ic
 import joblib as jb
 from sklearn.metrics import precision_score
 
@@ -341,18 +341,3 @@ def backtest_model(b_bt, ticker_data, symbol, cl_preds, og_preds):
     prec = precision_score(res["Target"], res["Predictions"])
     
     return res.plot(backend='plotly'), f"Precision: {prec:.3f}", dict(data)
-
-# @callback(
-#     Output('b_backtest', 'style'),
-#     [
-#         State('b_backtest', 'style'),
-#         Input('model_params', 'children'),
-#         State({'type': 'model_param', 'index': ALL}, 'value'),
-#         State({'type': 'model_param', 'index': ALL}, 'id')
-#     ]
-# )
-# def test_params(styl, div, values, ids):
-#     if not div: raise PreventUpdate
-#     ic(values)
-#     ic(ids)
-#     return styl
