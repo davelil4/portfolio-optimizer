@@ -14,51 +14,28 @@ import inspect
 # from icecream import ic
 import joblib as jb
 from sklearn.metrics import precision_score
+import ml_modeling.indicator_testing as it
+import ml_modeling.indicator_graphing as ig
+from ml_modeling.helpers import *
+
 
 models = {
     'RandomForestClassifier': RandomForestClassifier
 }
 
+og_preds = ["Open", "Close", "High", "Low"]
+
 ml_tab = html.Div(
     [
         dcc.Store(id='sim_data', storage_type='memory'),
         dcc.Store(id='model', storage_type='memory'),
+        dcc.Store(id='indicator-df', storage_type='memory'),
         dbc.Card(
             dbc.CardBody([
                 html.H2("Model Selection"),
                 dbc.Row([
                     dbc.Col([
-                        html.Div([
-                            html.H5("Indicators/Predictors"),
-                            dcc.Checklist(
-                                options=list(ml.pred_to_func.keys()),
-                                id="cl_ex_preds"
-                                # inline=True
-                            ),
-                            dcc.Checklist(
-                                options=[
-                                    "Open",
-                                    "Close",
-                                    "High",
-                                    "Low"
-                                ],
-                                id="cl_og_preds"
-                            ),
-                        ]),
-                        html.Br(),
-                        html.Div([
-                            html.H5("Model"),
-                            dcc.Dropdown(list(models.keys()),id='model_select'),
-                            html.Div(id='model_params')
-                        ], style={'width': '50%'}),
-                        html.Br(),
-                        dbc.Stack([
-                            dbc.Button("Save Model", "b_save"),
-                            dbc.Label(id='l_succ')
-                        ], direction='horizontal', gap=3)
-                    ]),
-                    dbc.Col([
-                        dcc.Dropdown(['Model Selection', 'Backtesting'], 'Model Selection', id='dd_ms_graph'),
+                        dcc.Dropdown(['Model Selection', 'Backtesting', 'Indicators'], 'Model Selection', id='dd_ms_graph', persistence=True),
                         html.Br(),
                         html.Div([
                             dcc.Graph('ms_graph'),
@@ -70,10 +47,29 @@ ml_tab = html.Div(
                             html.Br(),
                             dbc.Button('Run Backtest', id='b_bt'),
                             dbc.Label(id='bt_prec')
-                        ], "bt_comps"),  
+                        ], id="bt_comps"),
+                        ig.make_layout(),
                         html.Br(),
-                        dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '40%'})
-                    ])
+                        dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '40%'}),
+                    ]),
+                ]),
+                html.Br(),
+                dbc.Row([
+                    dbc.Col([
+                       html.Div([
+                            html.H5("Model"),
+                            dcc.Dropdown(list(models.keys()),id='model_select'),
+                            html.Div(id='model_params')
+                            ]),
+                            html.Br(),
+                            dbc.Stack([
+                                dbc.Button("Save Model", "b_save"),
+                                dbc.Label(id='l_succ')
+                        ], direction='horizontal', gap=3) 
+                    ], width=6),
+                    dbc.Col([
+                    it.make_layout(),
+                    ], width=6)
                 ])
             ])
         ),
@@ -110,23 +106,18 @@ ml_tab = html.Div(
     ],
     id='ml_tab'
 )
+    
 
 def get_hist(data, symbol):
-    if not data or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()):
-        data = {}
+    if data is None or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()) or symbol not in data or 'last_date' not in data:
         hist = dg.getHistory(symbol, 'max')
-        hist['Date'] = hist.index
-        data[symbol] = hist.to_dict('records')
-        del hist['Date']
-        data['last_date'] = hist.iloc[[-1]].index[0]
+        data = create_data_from_df(hist, symbol)
     else:
-        hist = pd.DataFrame.from_dict(data[symbol])
-        hist.set_index('Date')
-        del hist['Date']
+        hist = create_df_from_data(data, symbol)
     
     return hist, data
 
-def createDate(string):
+def create_date(string):
     return datetime.strptime(string, '%Y-%M-%D').date()
 
 def model_from_inputs(model_name, input_dicts, values):
@@ -134,12 +125,16 @@ def model_from_inputs(model_name, input_dicts, values):
     param_map = {params[i]: values[i] for i in range(len(values))}
     return models[model_name](**param_map)
 
-def createTraining(hist, cl_preds, shift):
-    cl_preds = [] if not cl_preds else cl_preds
-    train = ml.create_shifted_data(hist, shift)
-    train = ml.create_new_predictors(train, cl_preds)
+# def create_training(hist, cl_preds, shift):
+#     cl_preds = [] if not cl_preds else cl_preds
+#     train = ml.create_shifted_data(hist, shift)
+#     train = ml.create_new_predictors(train, cl_preds)
     
-    return train
+#     return train
+
+def create_training(hist, indicators, shift):
+    train = ml.create_shifted_data(hist, shift)
+    return it.gen_indicators(train, indicators)
 
 @callback(
     [
@@ -207,8 +202,7 @@ def simulated_precision(data):
         Input('b_ms','n_clicks'),
         State('ticker_data', 'data'),
         State('dd_ms', 'value'),
-        State('cl_ex_preds', 'value'),
-        State('cl_og_preds', 'value')
+        State('ind-store', 'data')
     ],
     background=True,
     running=[
@@ -216,20 +210,15 @@ def simulated_precision(data):
     ],
     prevent_initial_call=True
 )
-def run_model_selection(b_ms, data, symbol, cl_preds, og_preds):
+def run_model_selection(b_ms, data, symbol, inds):
     if not b_ms or not symbol:
         raise PreventUpdate
 
     hist, data = get_hist(data, symbol)
     
-    cl_preds = [] if not cl_preds else cl_preds
-    train = createTraining(hist, cl_preds, 1).dropna()
+    train = create_training(hist, inds, 1).dropna()
     
-    
-    # ic(train)
-    
-    return ms.drawMSFigure(*ms.model_selection(train, cl_preds + og_preds)), dict(data)
-
+    return ms.drawMSFigure(*ms.model_selection(train, it.get_indicators(inds) + og_preds)), dict(data)
 
 @callback(
     Output('model_params', 'children'),
@@ -253,7 +242,6 @@ def create_model_params(model_name):
     
     args1, _, _, arg_def, _, kwargs, *_ = inspect.getfullargspec(model.__init__)
     
-    
     params = []
     
     for i, arg in enumerate(args1[1:]):
@@ -273,14 +261,18 @@ def create_model_params(model_name):
     [
         Output('ms_comps', 'hidden'),
         Output('bt_comps', 'hidden'),
+        Output('ind_comps', 'hidden')
     ],
     Input('dd_ms_graph', 'value'),
 )
 def model_graph(dd):
     
     if dd == 'Model Selection':
-        return False, True
-    return True, False
+        return False, True, True
+    elif dd == 'Backtesting':
+        True, False, True
+    else:
+        return True, True, False
 
 
 @callback(
@@ -315,8 +307,7 @@ def save_model(b_save, model_name, vals, ids):
         # State('model', 'data'),
         State('ticker_data', 'data'),
         State('dd_ms', 'value'),
-        State('cl_ex_preds', 'value'),
-        State('cl_og_preds', 'value')
+        State('ind-store', 'data'),
     ],
     background=True,
     running=[
@@ -324,20 +315,38 @@ def save_model(b_save, model_name, vals, ids):
     ],
     prevent_initial_call=True
 )
-def backtest_model(b_bt, ticker_data, symbol, cl_preds, og_preds):
+def backtest_model(b_bt, ticker_data, symbol, inds):
     if b_bt is None: raise PreventUpdate
     
     hist, data = get_hist(ticker_data, symbol)
-    cl_preds = [] if not cl_preds else cl_preds
     
-    b_data = createTraining(hist, cl_preds, 1).dropna()
+    b_data = create_training(hist, inds, 1).dropna()
     
     res = ml.backtest(
         b_data,
         jb.load('model.joblib'), 
-        cl_preds + og_preds
+        it.get_indicators(inds) + og_preds
     )
     
     prec = precision_score(res["Target"], res["Predictions"])
     
     return res.plot(backend='plotly'), f"Precision: {prec:.3f}", dict(data)
+
+
+@callback(
+    Output('indicator-df', 'data'),
+    Input('ticker_data', 'data'),
+    Input('ind-store', 'data'),
+    State('dd_ms', 'value')
+    
+)
+def update_data(hist_data, inds, symbol):
+    if not hist_data or not symbol:
+        raise PreventUpdate
+    hist, _ = get_hist(hist_data, symbol)
+    inds = it.gen_indicators(hist, inds)
+    return create_data_from_df(inds, symbol)
+
+it.make_callbacks()
+
+ig.make_callbacks()

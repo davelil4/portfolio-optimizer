@@ -28,6 +28,7 @@ app.layout = dbc.Container(
             ],
             id="tabs",
             active_tab="info",
+            persistence=True,
         ),
         html.Br(),
         info_tab,
