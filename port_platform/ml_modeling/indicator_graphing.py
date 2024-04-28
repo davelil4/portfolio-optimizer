@@ -17,15 +17,16 @@ def make_callbacks():
     
     @callback(
         Output('ind-checklist', 'options'),
-        # Output('ind-checklist', 'value'), Change values to only whats in the columns
+        Output('ind-checklist', 'value'),
         Input('indicator-df', 'data'),
-        State('dd_ms', 'value')
+        State('dd_ms', 'value'),
+        State('ind-checklist', 'value')
     )
-    def update_checklist(data, symbol):
+    def update_checklist(data, symbol, inds):
         if not data:
             raise PreventUpdate
         df = create_df_from_data(data, symbol)
-        return df.columns
+        return df.columns, list(filter(lambda x: x in df.columns, inds))
     
     @callback(
         Output('ind-graph', 'figure'),

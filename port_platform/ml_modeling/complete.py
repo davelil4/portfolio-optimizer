@@ -107,9 +107,8 @@ ml_tab = html.Div(
     id='ml_tab'
 )
     
-
 def get_hist(data, symbol):
-    if data is None or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()) or symbol not in data or 'last_date' not in data:
+    if data is None or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()) or symbol not in data or 'last_date' not in data or symbol not in data:
         hist = dg.getHistory(symbol, 'max')
         data = create_data_from_df(hist, symbol)
     else:
@@ -338,7 +337,6 @@ def backtest_model(b_bt, ticker_data, symbol, inds):
     Input('ticker_data', 'data'),
     Input('ind-store', 'data'),
     State('dd_ms', 'value')
-    
 )
 def update_data(hist_data, inds, symbol):
     if not hist_data or not symbol:
