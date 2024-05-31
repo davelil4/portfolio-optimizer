@@ -1,14 +1,11 @@
-from dash import Dash, html, Output, Input, callback, State, ALL, dash_table
+from dash import html, Output, Input, callback, State, ALL, dash_table
 from dash.exceptions import PreventUpdate
 import dash.dcc as dcc
 import dash_bootstrap_components as dbc
 import ta
-import inspect
-import yfinance as yf
-import os
-import pandas as pd
+from ml_modeling.helpers import get_function_arguments
 
-# ### TA Generator | Dash Preview
+### TA Generator | Dash Preview
 
 
 submodules = [name for name in dir(ta) if not (name.startswith("__") or name.startswith("add") or name == 'wrapper' or name == 'utils')]
@@ -22,19 +19,6 @@ for module in submodules:
         not (name.startswith("__") or name.startswith("_") or name[0].isupper())]
     mod_to_inds[module] = function_names
 
-
-
-
-def get_function_arguments(func):
-    signature = inspect.signature(func)
-    arguments = []
-    for name, param in signature.parameters.items():
-        if param.default is inspect.Parameter.empty:
-            arguments.append((name, None))
-        else:
-            arguments.append((name, param.default))
-    return arguments
-
 def get_ind_args(module, ind):
     return list(filter(lambda x: (x[0].lower() not in ["close", "open", "high", "low", "volume"]), get_function_arguments(getattr(getattr(ta, module), ind))))
 
@@ -46,8 +30,6 @@ def draw_ind_inputs(module, ind):
             dbc.Input(id={'type':'ind-param', 'index':arg}, value=val)
         ], direction='horizontal', gap=2))
     return inputs
-
-
 
 def make_layout():
     return html.Div([

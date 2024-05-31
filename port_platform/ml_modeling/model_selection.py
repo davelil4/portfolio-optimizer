@@ -14,6 +14,20 @@ from ml_modeling.modeling import backtest
 import plotly.express as px
 import pandas as pd
 
+models = {
+        'RandomForestClassifier': RandomForestClassifier,
+        'LinearDiscriminantAnalysis': LinearDiscriminantAnalysis,
+        'LogisticRegression': LogisticRegression,
+        'KNeighborsClassifier': KNeighborsClassifier,
+        'DecisionTreeClassifier': DecisionTreeClassifier,
+        'GaussianNB': GaussianNB,
+        'ExtraTreesClassifier': ExtraTreesClassifier,
+        'AdaBoostClassifier': AdaBoostClassifier,
+        'SVM': svm.SVC,
+        'GradientBoostingClassifier': GradientBoostingClassifier,
+        'MLPClassifier': MLPClassifier
+}
+
 def model_selection(train, predictors):
     seed = 8
     models = []

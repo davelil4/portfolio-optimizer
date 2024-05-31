@@ -33,7 +33,7 @@ app.layout = dbc.Container(
         html.Br(),
         info_tab,
         ml_tab
-    ]
+    ], fluid=True
 )
 
 @app.callback(

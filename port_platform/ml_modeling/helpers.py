@@ -1,4 +1,15 @@
 import pandas as pd
+import inspect
+
+def get_function_arguments(func):
+    signature = inspect.signature(func)
+    arguments = []
+    for name, param in signature.parameters.items():
+        if param.default is inspect.Parameter.empty:
+            arguments.append((name, None))
+        else:
+            arguments.append((name, param.default))
+    return arguments
 
 def create_data_from_df(df, symbol):
     data = {}

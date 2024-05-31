@@ -1,8 +1,6 @@
 from dash import html, dcc, callback, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
-# import plotly.express as px
-# import pandas as pd
 import data_grab as dg
 import ml_modeling.modeling as ml
 from ml_modeling.layout import *
@@ -18,12 +16,9 @@ import ml_modeling.indicator_testing as it
 import ml_modeling.indicator_graphing as ig
 from ml_modeling.helpers import *
 
+from ml_modeling.model_selection import models
 
-models = {
-    'RandomForestClassifier': RandomForestClassifier
-}
-
-og_preds = ["Open", "Close", "High", "Low"]
+og_preds = ['Open', 'Close', 'High', 'Low']
 
 ml_tab = html.Div(
     [
@@ -32,7 +27,7 @@ ml_tab = html.Div(
         dcc.Store(id='indicator-df', storage_type='memory'),
         dbc.Card(
             dbc.CardBody([
-                html.H2("Model Selection"),
+                html.H2('Model Selection'),
                 dbc.Row([
                     dbc.Col([
                         dcc.Dropdown(['Model Selection', 'Backtesting', 'Indicators'], 'Model Selection', id='dd_ms_graph', persistence=True),
@@ -41,29 +36,29 @@ ml_tab = html.Div(
                             dcc.Graph('ms_graph'),
                             html.Br(),
                             dbc.Button('Run Model Selection', id='b_ms'),
-                        ], "ms_comps"),
+                        ], id='ms_comps'),
                         html.Div([
                             dcc.Graph('bt_graph'),
                             html.Br(),
                             dbc.Button('Run Backtest', id='b_bt'),
                             dbc.Label(id='bt_prec')
-                        ], id="bt_comps"),
+                        ], id='bt_comps'),
                         ig.make_layout(),
                         html.Br(),
-                        dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '40%'}),
+                        dbc.Stack([dbc.Label('Stock Data'), dcc.Dropdown(dg.stock_symbols, id='dd_ms', style={'width': '40%'}),], direction='horizontal', gap=3)
                     ]),
                 ]),
                 html.Br(),
                 dbc.Row([
                     dbc.Col([
                        html.Div([
-                            html.H5("Model"),
+                            html.H5('Model'),
                             dcc.Dropdown(list(models.keys()),id='model_select'),
                             html.Div(id='model_params')
                             ]),
                             html.Br(),
                             dbc.Stack([
-                                dbc.Button("Save Model", "b_save"),
+                                dbc.Button('Save Model', 'b_save'),
                                 dbc.Label(id='l_succ')
                         ], direction='horizontal', gap=3) 
                     ], width=6),
@@ -76,7 +71,7 @@ ml_tab = html.Div(
         html.Br(),
         dbc.Card(
             dbc.CardBody([
-                html.H2("Simulations"),
+                html.H2('Simulations'),
                 dbc.Row([
                     dbc.Col(
                         dcc.Graph(id='MCSims'), width='6'
@@ -90,14 +85,14 @@ ml_tab = html.Div(
                     dbc.Col([
                         dbc.Stack([
                             drawSimInputs(),
-                            dcc.Dropdown(options=dg.stock_symbols, id="sim_stock"),
-                            dbc.Button("Run Simulations", "b_sims", color="primary"),
+                            dcc.Dropdown(options=dg.stock_symbols, id='sim_stock'),
+                            dbc.Button('Run Simulations', 'b_sims', color='primary'),
                         ], direction='horizontal', gap=3)
                     ], width=6),
                     dbc.Col([
                         dbc.Stack([
-                            dbc.Label(id="sim_prec"),
-                            dbc.Label(id="sim_grets")
+                            dbc.Label(id='sim_prec'),
+                            dbc.Label(id='sim_grets')
                         ], direction='horizontal', gap=3),
                     ], width=6)
                 ])
@@ -108,7 +103,7 @@ ml_tab = html.Div(
 )
     
 def get_hist(data, symbol):
-    if data is None or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today("America/New_York").date()) or symbol not in data or 'last_date' not in data or symbol not in data:
+    if data is None or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today('America/New_York').date()) or symbol not in data or 'last_date' not in data or symbol not in data:
         hist = dg.getHistory(symbol, 'max')
         data = create_data_from_df(hist, symbol)
     else:
@@ -160,18 +155,17 @@ def simulations(b_sims, nsims, ndays, symbol, data):
     res = ml.runSims(
         hist, 
         RandomForestClassifier(random_state=1),
-        ["Open", "Close", "High", "Low"],
+        ['Open', 'Close', 'High', 'Low'],
         ndays,
         nsims
     )
     
     imp = {
-        "precision": res["precision"], 
-        "grets_avg": res["grets_avg"]
+        'precision': res['precision'], 
+        'grets_avg': res['grets_avg']
     }
     
-    return ml.simFigure(hist, res["data"]), ml.stratFigure(hist, res, nsims, ndays), dict(data), imp
-    
+    return ml.simFigure(hist, res['data']), ml.stratFigure(hist, res, nsims, ndays), dict(data), imp
     
 @callback(
     [
@@ -186,10 +180,10 @@ def simulated_precision(data):
     if data is None:
         raise PreventUpdate
     
-    score = data["precision"]
-    rets = data["grets_avg"]
+    score = data['precision']
+    rets = data['grets_avg']
     
-    return f"Precision: {score:.4f}", f"Gross Returns: {rets:.4f}"
+    return f'Precision: {score:.4f}', f'Gross Returns: {rets:.4f}'
 
 @callback(
     
@@ -205,7 +199,7 @@ def simulated_precision(data):
     ],
     background=True,
     running=[
-        (Output("b_ms", "disabled"), True, False),
+        (Output('b_ms', 'disabled'), True, False),
     ],
     prevent_initial_call=True
 )
@@ -228,8 +222,8 @@ def create_model_params(model_name):
     def create_param(arg, default):
         return dbc.Stack(
                 [
-                    dbc.Label(f"{arg}: "),
-                    dbc.Input({"type": "model_param", "index": arg}, value=default)
+                    dbc.Label(f'{arg}: '),
+                    dbc.Input({'type': 'model_param', 'index': arg}, value=default)
                 ], direction='horizontal', gap=3
             )
     
@@ -239,20 +233,10 @@ def create_model_params(model_name):
     
     model = models[model_name]
     
-    args1, _, _, arg_def, _, kwargs, *_ = inspect.getfullargspec(model.__init__)
-    
     params = []
     
-    for i, arg in enumerate(args1[1:]):
-        
-        params.append(
-            create_param(arg, arg_def[i])
-        )
-    
-    for arg in kwargs:
-        params.append(
-            create_param(arg, kwargs[arg])
-        )
+    for arg, default in get_function_arguments(model):
+        params.append(create_param(arg, default))
     
     return params
 
@@ -265,14 +249,11 @@ def create_model_params(model_name):
     Input('dd_ms_graph', 'value'),
 )
 def model_graph(dd):
-    
     if dd == 'Model Selection':
         return False, True, True
     elif dd == 'Backtesting':
-        True, False, True
-    else:
-        return True, True, False
-
+        return True, False, True
+    return True, True, False
 
 @callback(
     [
@@ -292,8 +273,7 @@ def save_model(b_save, model_name, vals, ids):
     
     jb.dump(model_from_inputs(model_name, ids, vals), 'model.joblib')
     
-    return [model_name, ids, vals], "Successfully saved model."
-
+    return [model_name, ids, vals], 'Successfully saved model.'
 
 @callback(
     [
@@ -310,7 +290,7 @@ def save_model(b_save, model_name, vals, ids):
     ],
     background=True,
     running=[
-        (Output("b_bt", "disabled"), True, False),
+        (Output('b_bt', 'disabled'), True, False),
     ],
     prevent_initial_call=True
 )
@@ -327,9 +307,9 @@ def backtest_model(b_bt, ticker_data, symbol, inds):
         it.get_indicators(inds) + og_preds
     )
     
-    prec = precision_score(res["Target"], res["Predictions"])
+    prec = precision_score(res['Target'], res['Predictions'])
     
-    return res.plot(backend='plotly'), f"Precision: {prec:.3f}", dict(data)
+    return res.plot(backend='plotly'), f'Precision: {prec:.3f}', dict(data)
 
 
 @callback(

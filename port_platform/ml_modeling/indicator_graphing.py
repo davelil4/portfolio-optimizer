@@ -10,7 +10,7 @@ def make_layout():
             dcc.Graph('ind-graph'),
             html.Br(),
             dcc.Checklist(id='ind-checklist', options=[], value=[], inline=True)
-        ], id="ind_comps")
+        ], id='ind_comps')
     
 
 def make_callbacks():
