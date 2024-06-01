@@ -1,6 +1,31 @@
 import pandas as pd
 import inspect
 import data_grab as dg
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import ExtraTreesClassifier 
+from sklearn.ensemble import AdaBoostClassifier 
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
+from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+
+models = {
+        'RandomForestClassifier': RandomForestClassifier,
+        'LinearDiscriminantAnalysis': LinearDiscriminantAnalysis,
+        'LogisticRegression': LogisticRegression,
+        'KNeighborsClassifier': KNeighborsClassifier,
+        'DecisionTreeClassifier': DecisionTreeClassifier,
+        'GaussianNB': GaussianNB,
+        'ExtraTreesClassifier': ExtraTreesClassifier,
+        'AdaBoostClassifier': AdaBoostClassifier,
+        'SVM': svm.SVC,
+        'GradientBoostingClassifier': GradientBoostingClassifier,
+        'MLPClassifier': MLPClassifier
+}
 
 def get_function_arguments(func):
     signature = inspect.signature(func)

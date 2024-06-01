@@ -5,5 +5,5 @@ data/*.json
 *.log
 .vscode
 port_platform/cache
-port_platform/model.joblib
+*.joblib
 .DS_Store

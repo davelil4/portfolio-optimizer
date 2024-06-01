@@ -5,7 +5,7 @@ import data_grab as dg
 import ml_modeling.modeling as ml
 from ml_modeling.layout import *
 from datetime import datetime
-import ml_modeling.model_selection as ms
+import ml_modeling.model_finding as mf
 # from icecream import ic
 import joblib as jb
 from sklearn.metrics import precision_score
@@ -13,18 +13,19 @@ import ml_modeling.indicator_testing as it
 import ml_modeling.indicator_graphing as ig
 import ml_modeling.simulations as sims
 from ml_modeling.helpers import *
-from ml_modeling.model_selection import models
+from ml_modeling.model_finding import models
+import ml_modeling.model_selection as ms
 
 og_preds = ['Open', 'Close', 'High', 'Low']
 
 ml_tab = html.Div(
     [
         dcc.Store(id='sim_data', storage_type='memory'),
-        dcc.Store(id='model', storage_type='memory'),
+        dcc.Store(id='models', storage_type='local'),
         dcc.Store(id='indicator-df', storage_type='memory'),
         dbc.Card(
             dbc.CardBody([
-                html.H2('Model Selection'),
+                html.H2('LOREM IPSUM'),
                 dbc.Row([
                     dbc.Col([
                         dcc.Dropdown(['Model Selection', 'Backtesting', 'Indicators'], 'Model Selection', id='dd_ms_graph', persistence=True),
@@ -48,19 +49,10 @@ ml_tab = html.Div(
                 html.Br(),
                 dbc.Row([
                     dbc.Col([
-                       html.Div([
-                            html.H5('Model'),
-                            dcc.Dropdown(list(models.keys()),id='model_select'),
-                            html.Div(id='model_params')
-                            ]),
-                            html.Br(),
-                            dbc.Stack([
-                                dbc.Button('Save Model', 'b_save'),
-                                dbc.Label(id='l_succ')
-                        ], direction='horizontal', gap=3) 
+                        ms.make_layout() 
                     ], width=6),
                     dbc.Col([
-                    it.make_layout(),
+                        it.make_layout()
                     ], width=6)
                 ])
             ])
@@ -120,34 +112,8 @@ def run_model_selection(b_ms, data, symbol, inds):
     
     train = create_training(hist, inds, 1).dropna()
     
-    return ms.drawMSFigure(*ms.model_selection(train, it.get_indicators(inds) + og_preds)), dict(data)
+    return mf.drawMSFigure(*mf.model_selection(train, it.get_indicators(inds) + og_preds)), dict(data)
 
-@callback(
-    Output('model_params', 'children'),
-    Input('model_select', 'value')
-)
-def create_model_params(model_name):
-    
-    def create_param(arg, default):
-        return dbc.Stack(
-                [
-                    dbc.Label(f'{arg}: '),
-                    dbc.Input({'type': 'model_param', 'index': arg}, value=default)
-                ], direction='horizontal', gap=3
-            )
-    
-    if model_name is None:
-        raise PreventUpdate
-    
-    
-    model = models[model_name]
-    
-    params = []
-    
-    for arg, default in get_function_arguments(model):
-        params.append(create_param(arg, default))
-    
-    return params
 
 @callback(
     [
@@ -164,29 +130,7 @@ def model_graph(dd):
         return True, False, True
     return True, True, False
 
-@callback(
-    [
-        Output('model', 'data'),
-        Output('l_succ', 'children')
-    ],
-    [
-        Input('b_save', 'n_clicks'),
-        State('model_select', 'value'),
-        State({'type': 'model_param', 'index': ALL}, 'value'),
-        State({'type': 'model_param', 'index': ALL}, 'id')
-    ],
-    background=True,
-    running=[
-        (Output('b_save', 'disabled'), True, False),
-    ]
-)
-def save_model(b_save, model_name, vals, ids):
-    if b_save is None:
-        raise PreventUpdate
-    
-    jb.dump(model_from_inputs(model_name, ids, vals), 'model.joblib')
-    
-    return [model_name, ids, vals], 'Successfully saved model.'
+
 
 @callback(
     [
@@ -242,3 +186,5 @@ it.make_callbacks()
 ig.make_callbacks()
 
 sims.make_callbacks()
+
+ms.make_callbacks()

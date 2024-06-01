@@ -1,76 +1,98 @@
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import ExtraTreesClassifier 
-from sklearn.ensemble import AdaBoostClassifier 
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import precision_score
-from sklearn import svm
-from sklearn.neural_network import MLPClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from ml_modeling.modeling import backtest
-import plotly.express as px
-import pandas as pd
+from dash import html, dcc, callback, Input, Output, State, ALL
+from dash.exceptions import PreventUpdate
+import dash_bootstrap_components as dbc
+from ml_modeling.helpers import *
+import joblib as jb
 
-models = {
-        'RandomForestClassifier': RandomForestClassifier,
-        'LinearDiscriminantAnalysis': LinearDiscriminantAnalysis,
-        'LogisticRegression': LogisticRegression,
-        'KNeighborsClassifier': KNeighborsClassifier,
-        'DecisionTreeClassifier': DecisionTreeClassifier,
-        'GaussianNB': GaussianNB,
-        'ExtraTreesClassifier': ExtraTreesClassifier,
-        'AdaBoostClassifier': AdaBoostClassifier,
-        'SVM': svm.SVC,
-        'GradientBoostingClassifier': GradientBoostingClassifier,
-        'MLPClassifier': MLPClassifier
-}
 
-def model_selection(train, predictors):
-    seed = 8
-    models = []
-    models.append(('LogisticRegression', LogisticRegression(random_state=seed), False))
-    models.append(('LinearDiscriminantAnalysis', LinearDiscriminantAnalysis(), False))
-    models.append(('KNeighborsClassifier', KNeighborsClassifier(), False))
-    models.append(('DecisionTreeClassifier', DecisionTreeClassifier(), False))
-    models.append(('GaussianNB', GaussianNB(), False))
-    models.append(('RandomForestClassifier', RandomForestClassifier(), True))
-    models.append(('ExtraTreesClassifier',ExtraTreesClassifier(random_state=seed), False))
-    models.append(('AdaBoostClassifier',AdaBoostClassifier(DecisionTreeClassifier(random_state=seed),random_state=seed,learning_rate=0.1), False))
-    models.append(('SVM',svm.SVC(random_state=seed), False))
-    models.append(('GradientBoostingClassifier',GradientBoostingClassifier(random_state=seed), False))
-    models.append(('MLPClassifier',MLPClassifier(random_state=seed), False))
-    # evaluate each model in turn
-    results = []
-    names = []
-    scoring = 'accuracy'
-    for name, model, prob in models:
-        # kfold = KFold(n_splits=10, shuffle=True, random_state=seed) 
-        preds = backtest(train, model, predictors, probability=prob)
-        cv_results = precision_score(preds["Target"], preds["Predictions"])
-        results.append(cv_results)
-        names.append(name)
-        msg = "%s: %f (%f)" % (name, cv_results, cv_results.std())
-        print(msg) 
-    return results, names
+def make_layout():
+    return html.Div([
+        html.Div([
+            html.H5('Model'),
+            dbc.Stack([
+                html.Div(dcc.Dropdown(list(models.keys()), id='model_select'), style={'width':'50%', 'height':'100%'}),
+                dbc.Input(id='model_name', type='text', placeholder='Model Name', style={'width':'50%', 'height':'100%'})
+            ], direction='horizontal', gap=3),
+            html.Div(id='model_params')
+            ]),
+            html.Br(),
+            dbc.Stack([
+                dbc.Button('Save Model', 'b_save', disabled=True),
+                dbc.Label(id='l_succ')
+        ], direction='horizontal', gap=3)
+    ], style={'height':'100%'})
 
-def drawMSFigure(results, names):
+def model_from_inputs(model_name, input_dicts, values):
+    params = list(map(lambda x: x['index'], input_dicts))
+    param_map = {params[i]: values[i] for i in range(len(values))}
+    return models[model_name](**param_map)
 
-    resultdf = pd.DataFrame(data={
-        'name': names,
-        'score': results
-    })
-
-    # Model with best score
-    # print(resultdf["name"].iloc[resultdf["score"].idxmax()])
-
-    fig = px.bar(resultdf, x='score', y='name', orientation='h')
+def make_callbacks():
+    @callback(
+        [
+            Output('model_params', 'children'),
+            Output('b_save', 'disabled')
+        ],
+        Input('model_select', 'value')
+    )
+    def create_model_params(model_name):
+        
+        def create_param(arg, default):
+            return dbc.Stack(
+                    [
+                        dbc.Label(f'{arg}: '),
+                        dbc.Input({'type': 'model_param', 'index': arg}, value=default)
+                    ], direction='horizontal', gap=3
+                )
+        
+        if model_name is None:
+            return [], True
+        
+        
+        model = models[model_name]
+        
+        params = []
+        
+        for arg, default in get_function_arguments(model):
+            params.append(create_param(arg, default))
+        
+        return params, False
     
-    return fig
+    @callback(
+        [
+            Output('models', 'data'),
+            Output('l_succ', 'children')
+        ],
+        [
+            Input('b_save', 'n_clicks'),
+            State('model_select', 'value'),
+            State({'type': 'model_param', 'index': ALL}, 'value'),
+            State({'type': 'model_param', 'index': ALL}, 'id'),
+            State('model_name', 'value'),
+            State('models', 'data')
+        ],
+        background=True,
+        running=[
+            (Output('b_save', 'disabled'), True, False),
+        ],
+        prevent_initial_call=True
+    )
+    def save_model(b_save, model_type, vals, ids, model_name, models):
+        if b_save is None:
+            raise PreventUpdate
+        
+        if models is None:
+            models = {}
+        
+        if model_type is None:
+            return models, 'No model selected.'
+        elif model_name is None:
+            return models, 'No model name.'
+        
+        models[model_name] = dict(zip(ids, vals))
+        
+        jb.dump(model_from_inputs(model_type, ids, vals), f'{model_name}.joblib')
+        
+        return models, 'Successfully saved model.'
 
-def getBestModel(results, names):
-    return names[pd.Series(results).idxmax()]
-    
     
