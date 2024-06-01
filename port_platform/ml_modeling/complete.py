@@ -5,17 +5,14 @@ import data_grab as dg
 import ml_modeling.modeling as ml
 from ml_modeling.layout import *
 from datetime import datetime
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
 import ml_modeling.model_selection as ms
-import inspect
 # from icecream import ic
 import joblib as jb
 from sklearn.metrics import precision_score
 import ml_modeling.indicator_testing as it
 import ml_modeling.indicator_graphing as ig
+import ml_modeling.simulations as sims
 from ml_modeling.helpers import *
-
 from ml_modeling.model_selection import models
 
 og_preds = ['Open', 'Close', 'High', 'Low']
@@ -71,45 +68,12 @@ ml_tab = html.Div(
         html.Br(),
         dbc.Card(
             dbc.CardBody([
-                html.H2('Simulations'),
-                dbc.Row([
-                    dbc.Col(
-                        dcc.Graph(id='MCSims'), width='6'
-                    ),
-                    dbc.Col(
-                        dcc.Graph(id='strat'), width='6'
-                    )
-                ]),
-                html.Br(),
-                dbc.Row([
-                    dbc.Col([
-                        dbc.Stack([
-                            drawSimInputs(),
-                            dcc.Dropdown(options=dg.stock_symbols, id='sim_stock'),
-                            dbc.Button('Run Simulations', 'b_sims', color='primary'),
-                        ], direction='horizontal', gap=3)
-                    ], width=6),
-                    dbc.Col([
-                        dbc.Stack([
-                            dbc.Label(id='sim_prec'),
-                            dbc.Label(id='sim_grets')
-                        ], direction='horizontal', gap=3),
-                    ], width=6)
-                ])
+                sims.make_layout()
             ])
         ),
     ],
     id='ml_tab'
 )
-    
-def get_hist(data, symbol):
-    if data is None or (pd.to_datetime(data['last_date']).date() < pd.Timestamp.today('America/New_York').date()) or symbol not in data or 'last_date' not in data or symbol not in data:
-        hist = dg.getHistory(symbol, 'max')
-        data = create_data_from_df(hist, symbol)
-    else:
-        hist = create_df_from_data(data, symbol)
-    
-    return hist, data
 
 def create_date(string):
     return datetime.strptime(string, '%Y-%M-%D').date()
@@ -129,61 +93,6 @@ def model_from_inputs(model_name, input_dicts, values):
 def create_training(hist, indicators, shift):
     train = ml.create_shifted_data(hist, shift)
     return it.gen_indicators(train, indicators)
-
-@callback(
-    [
-        Output('MCSims', 'figure'),
-        Output('strat', 'figure'),
-        Output('ticker_data', 'data', allow_duplicate=True),
-        Output('sim_data', 'data')
-    ],
-    [
-        Input('b_sims', 'n_clicks'),
-        State('nsims', 'value'),
-        State('ndays', 'value'),
-        State('sim_stock', 'value'),
-        State('ticker_data', 'data')
-    ],
-    prevent_initial_call=True
-)
-def simulations(b_sims, nsims, ndays, symbol, data):
-    if not b_sims or not nsims or not ndays or not symbol:
-        raise PreventUpdate
-    
-    hist, data = get_hist(data, symbol)
-    
-    res = ml.runSims(
-        hist, 
-        RandomForestClassifier(random_state=1),
-        ['Open', 'Close', 'High', 'Low'],
-        ndays,
-        nsims
-    )
-    
-    imp = {
-        'precision': res['precision'], 
-        'grets_avg': res['grets_avg']
-    }
-    
-    return ml.simFigure(hist, res['data']), ml.stratFigure(hist, res, nsims, ndays), dict(data), imp
-    
-@callback(
-    [
-        Output('sim_prec', 'children'),
-        Output('sim_grets', 'children')
-    ],
-    [
-        Input('sim_data', 'data')
-    ]
-)
-def simulated_precision(data):
-    if data is None:
-        raise PreventUpdate
-    
-    score = data['precision']
-    rets = data['grets_avg']
-    
-    return f'Precision: {score:.4f}', f'Gross Returns: {rets:.4f}'
 
 @callback(
     
@@ -265,6 +174,10 @@ def model_graph(dd):
         State('model_select', 'value'),
         State({'type': 'model_param', 'index': ALL}, 'value'),
         State({'type': 'model_param', 'index': ALL}, 'id')
+    ],
+    background=True,
+    running=[
+        (Output('b_save', 'disabled'), True, False),
     ]
 )
 def save_model(b_save, model_name, vals, ids):
@@ -283,7 +196,6 @@ def save_model(b_save, model_name, vals, ids):
     ],
     [
         Input('b_bt', 'n_clicks'),
-        # State('model', 'data'),
         State('ticker_data', 'data'),
         State('dd_ms', 'value'),
         State('ind-store', 'data'),
@@ -328,3 +240,5 @@ def update_data(hist_data, inds, symbol):
 it.make_callbacks()
 
 ig.make_callbacks()
+
+sims.make_callbacks()

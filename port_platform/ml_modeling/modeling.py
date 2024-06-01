@@ -189,6 +189,7 @@ def create_new_predictors(data, predictors):
     return data
 
 def generate_dates(calendar, last_date, days, json=True):
+    last_date = last_date.date()
     if json: 
         return (calendar.valid_days(last_date, end_date=last_date + pd.Timedelta(days, "d"), tz="America/New_York")[1:] + pd.Timedelta(5, "h")).tz_localize(None)
     return (calendar.valid_days(last_date, end_date=last_date + pd.Timedelta(days, "d"), tz="America/New_York")[1:])
@@ -277,6 +278,7 @@ def runSims(hist, model, full_predictors, n_days, n_sims, sig_scal=1, v_scal=1):
     calendar = mcal.get_calendar('NYSE')
     last_date = hist.iloc[[-1]].index[0]
     # print(hist)
+    
     dates = generate_dates(calendar, last_date, n_days, json=False)
     tdays = len(dates)
     

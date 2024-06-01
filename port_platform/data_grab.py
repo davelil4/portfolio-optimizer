@@ -1,6 +1,5 @@
 import yfinance as yf
 import pandas as pd
-import math
 from dotenv import load_dotenv
 from stocksymbol import StockSymbol
 import os
