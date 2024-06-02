@@ -184,14 +184,6 @@ def make_callbacks():
                 del data[mod][ind]
         return data
 
-    # @callback(
-    #     Output('test-data', 'children'),
-    #     Input('ind-store', 'data')
-    # )
-    # def update_test_data(data):
-    #     if not data: data = {}
-    #     return data.__str__()
-
 
 # ### TA Generation | DF
 

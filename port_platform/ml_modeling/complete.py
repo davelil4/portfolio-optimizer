@@ -21,8 +21,22 @@ og_preds = ['Open', 'Close', 'High', 'Low']
 ml_tab = html.Div(
     [
         dcc.Store(id='sim_data', storage_type='memory'),
-        dcc.Store(id='models', storage_type='local'),
+        dcc.Store(id='models', storage_type='memory'),
+        dcc.Store(id='curr_model', storage_type='session'),
         dcc.Store(id='indicator-df', storage_type='memory'),
+        dbc.Card(
+            dbc.CardBody([
+                html.H2('Models'),
+                dbc.Row([
+                    dbc.Col([
+                        ms.make_create_layout()
+                    ], width=6),
+                    dbc.Col([
+                        ms.make_select_layout()
+                    ], width=6),
+                ])
+            ])
+        ),
         dbc.Card(
             dbc.CardBody([
                 html.H2('LOREM IPSUM'),
@@ -48,12 +62,12 @@ ml_tab = html.Div(
                 ]),
                 html.Br(),
                 dbc.Row([
-                    dbc.Col([
-                        ms.make_layout() 
-                    ], width=6),
+                    # dbc.Col([
+                    #     ms.make_layout() 
+                    # ], width=6),
                     dbc.Col([
                         it.make_layout()
-                    ], width=6)
+                    ], width=12)
                 ])
             ])
         ),
@@ -75,19 +89,11 @@ def model_from_inputs(model_name, input_dicts, values):
     param_map = {params[i]: values[i] for i in range(len(values))}
     return models[model_name](**param_map)
 
-# def create_training(hist, cl_preds, shift):
-#     cl_preds = [] if not cl_preds else cl_preds
-#     train = ml.create_shifted_data(hist, shift)
-#     train = ml.create_new_predictors(train, cl_preds)
-    
-#     return train
-
 def create_training(hist, indicators, shift):
     train = ml.create_shifted_data(hist, shift)
     return it.gen_indicators(train, indicators)
 
 @callback(
-    
     [
         Output('ms_graph', 'figure'),
         Output('ticker_data', 'data', allow_duplicate=True)

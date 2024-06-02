@@ -1,14 +1,15 @@
-from dash import html, dcc, callback, Input, Output, State, ALL
+from dash import html, dcc, callback, Input, Output, State, ALL, MATCH
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from ml_modeling.helpers import *
 import joblib as jb
+import pandas as pd
 
 
-def make_layout():
+def make_create_layout():
     return html.Div([
         html.Div([
-            html.H5('Model'),
+            html.H5('Model Creation'),
             dbc.Stack([
                 html.Div(dcc.Dropdown(list(models.keys()), id='model_select'), style={'width':'50%', 'height':'100%'}),
                 dbc.Input(id='model_name', type='text', placeholder='Model Name', style={'width':'50%', 'height':'100%'})
@@ -22,10 +23,28 @@ def make_layout():
         ], direction='horizontal', gap=3)
     ], style={'height':'100%'})
 
+def make_select_layout():
+    return html.Div([
+        html.H5('Model Selection'),
+        html.Div(id='model_btns'),
+        html.Br(),
+        dbc.Collapse(id='model_collapse', is_open=False)
+    ])
+
 def model_from_inputs(model_name, input_dicts, values):
     params = list(map(lambda x: x['index'], input_dicts))
     param_map = {params[i]: values[i] for i in range(len(values))}
     return models[model_name](**param_map)
+
+def create_table(params, values):
+    return dbc.Table.from_dataframe(
+        pd.DataFrame(
+            {
+                'Params': params,
+                'Values': values
+            }
+        ), striped=True, bordered=True, hover=True
+    )
 
 def make_callbacks():
     @callback(
@@ -89,10 +108,70 @@ def make_callbacks():
         elif model_name is None:
             return models, 'No model name.'
         
-        models[model_name] = dict(zip(ids, vals))
+        params = list(map(lambda x: x['index'], ids))
+        
+        models[model_name] = dict(zip(params, vals))
+        
+        models[model_name]['model'] = model_type
         
         jb.dump(model_from_inputs(model_type, ids, vals), f'{model_name}.joblib')
         
         return models, 'Successfully saved model.'
 
     
+    @callback(
+        Output('model_btns', 'children'),
+        Input('models', 'data'),
+    )
+    def add_model_button(models):
+        if models is None:
+            raise PreventUpdate
+        
+        return [dbc.Button(name, id={'type': 'model_btn', 'index': f'{name}'}) for name in models.keys()]
+    
+    @callback(
+        [
+            Output({'type': 'model_btn', 'index': ALL}, 'disabled'),
+            Output('model_collapse', 'is_open'),
+            Output('model_collapse', 'children')
+        ],
+        Input({'type': 'model_btn', 'index': ALL}, 'n_clicks_timestamp'),
+        State('models', 'data'),
+        State({'type': 'model_btn', 'index': ALL}, 'id')
+    )
+    def disable_model_btns(ts, models, btn_ids):
+        if ts is None or len(ts) == 0:
+            raise PreventUpdate
+        
+        ts = [x if x is not None else 0 for x in ts]
+        
+        idx = ts.index(max(ts))
+        
+        res = [False for _ in ts]
+        res[idx] = True
+        
+        model = btn_ids[idx]['index']
+        
+        del models[model]['model']
+        
+        return res, True, [create_table(list(models[model].keys()), list(models[model].values()))]
+    
+    @callback(
+        Output('curr_model', 'data'),
+        Input({'type': 'model_btn', 'index': ALL}, 'n_clicks_timestamp'),
+        State('models', 'data'),
+        State({'type': 'model_btn', 'index': ALL}, 'id')
+    )
+    def set_curr_model(ts, models, btn_ids):
+        ts = [x if x is not None else 0 for x in ts]
+        
+        idx = ts.index(max(ts))
+        
+        res = [False for _ in ts]
+        res[idx] = True
+        
+        model = btn_ids[idx]['index']
+        
+        return models[model]
+        
+        
