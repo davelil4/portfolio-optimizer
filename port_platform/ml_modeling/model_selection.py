@@ -25,7 +25,7 @@ def make_create_layout():
 
 def make_select_layout():
     return html.Div([
-        html.H5('Model Selection'),
+        html.H5('Select a Model'),
         html.Div(id='model_btns'),
         html.Br(),
         dbc.Collapse(id='model_collapse', is_open=False)
@@ -152,8 +152,6 @@ def make_callbacks():
         
         model = btn_ids[idx]['index']
         
-        del models[model]['model']
-        
         return res, True, [create_table(list(models[model].keys()), list(models[model].values()))]
     
     @callback(
@@ -163,6 +161,10 @@ def make_callbacks():
         State({'type': 'model_btn', 'index': ALL}, 'id')
     )
     def set_curr_model(ts, models, btn_ids):
+        
+        if len(ts) == 0 or not any(ts):
+            raise PreventUpdate
+        
         ts = [x if x is not None else 0 for x in ts]
         
         idx = ts.index(max(ts))

@@ -37,6 +37,7 @@ ml_tab = html.Div(
                 ])
             ])
         ),
+        html.Br(),
         dbc.Card(
             dbc.CardBody([
                 html.H2('LOREM IPSUM'),
@@ -149,6 +150,7 @@ def model_graph(dd):
         State('ticker_data', 'data'),
         State('dd_ms', 'value'),
         State('ind-store', 'data'),
+        State('curr_model', 'data')
     ],
     background=True,
     running=[
@@ -156,16 +158,20 @@ def model_graph(dd):
     ],
     prevent_initial_call=True
 )
-def backtest_model(b_bt, ticker_data, symbol, inds):
+def backtest_model(b_bt, ticker_data, symbol, inds, curr_model):
     if b_bt is None: raise PreventUpdate
     
     hist, data = get_hist(ticker_data, symbol)
     
     b_data = create_training(hist, inds, 1).dropna()
     
+    model = curr_model['model']
+        
+    del curr_model['model']
+    
     res = ml.backtest(
         b_data,
-        jb.load('model.joblib'), 
+        models[model](**curr_model),
         it.get_indicators(inds) + og_preds
     )
     

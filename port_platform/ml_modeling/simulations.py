@@ -51,7 +51,8 @@ def make_callbacks():
             State('nsims', 'value'),
             State('ndays', 'value'),
             State('sim_stock', 'value'),
-            State('ticker_data', 'data')
+            State('ticker_data', 'data'),
+            State('curr_model', 'data')
         ],
         background=True,
         running=[
@@ -59,15 +60,19 @@ def make_callbacks():
         ],
         prevent_initial_call=True
     )
-    def simulations(b_sims, nsims, ndays, symbol, data):
+    def simulations(b_sims, nsims, ndays, symbol, data, curr_model):
         if not b_sims or not nsims or not ndays or not symbol:
             raise PreventUpdate
         
         hist, data = get_hist(data, symbol)
         
+        model = curr_model['model']
+        
+        del curr_model['model']
+        
         res = ml.runSims(
             hist, 
-            RandomForestClassifier(random_state=1),
+            models[model](**curr_model),
             ['Open', 'Close', 'High', 'Low'],
             ndays,
             nsims

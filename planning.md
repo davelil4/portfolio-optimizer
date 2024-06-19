@@ -5,6 +5,7 @@
     - MarketAUX (100 req/day)
     - financial-news-api-python
     - https://eod-stock-api.site/docs/financial-news
+    - Sentiment analysis code: https://medium.com/@deepml1818/financial-sentiment-analysis-and-stock-information-retrieval-with-python-a1d6e821deb6
 - federal data
     - FREDApi
         - https://github.com/mortada/fredapi
